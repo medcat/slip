@@ -7,6 +7,31 @@ use syn::{BasicNode, Node, Type};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Let(Token, Option<Type>, Option<Expression>, Span);
 
+impl Let {
+    pub fn token(&self) -> &Token {
+        &self.0
+    }
+    pub fn token_mut(&mut self) -> &mut Token {
+        &mut self.0
+    }
+
+    pub fn kind(&self) -> &Option<Type> {
+        &self.1
+    }
+
+    pub fn kind_mut(&mut self) -> &mut Option<Type> {
+        &mut self.1
+    }
+
+    pub fn value(&self) -> &Option<Expression> {
+        &self.2
+    }
+
+    pub fn value_mut(&mut self) -> &mut Option<Expression> {
+        &mut self.2
+    }
+}
+
 impl Node for Let {
     fn parse(stream: &mut TokenStream) -> Result<Let> {
         let mut span = stream.expect_one(TokenKind::Let)?.span();

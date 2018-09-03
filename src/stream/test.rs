@@ -1,6 +1,3 @@
-extern crate test;
-
-use self::test::Bencher;
 use super::*;
 use std::borrow::Cow;
 
@@ -19,17 +16,7 @@ fn it_lexes() {
             (TokenKind::Identifier, Cow::Borrowed("default")),
             (TokenKind::LeftParen, Cow::Borrowed("(")),
             (TokenKind::RightParen, Cow::Borrowed(")")),
-            (TokenKind::Semicolon, Cow::Borrowed(";"))
+            (TokenKind::Semicolon, Cow::Borrowed(";")),
         ]
     );
-}
-
-#[bench]
-fn it_lexes_bench(b: &mut Bencher) {
-    b.iter(|| {
-        let lexer = TokenStream::new("return 3.default();");
-        lexer
-            .map(|r| r.map(|v| (v.kind, v.value)))
-            .collect::<Vec<_>>()
-    });
 }

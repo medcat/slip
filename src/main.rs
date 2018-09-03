@@ -1,6 +1,3 @@
-#![feature(test)]
-#![feature(never_type)]
-
 #[macro_use]
 extern crate lazy_static;
 #[macro_use]
@@ -16,6 +13,7 @@ pub mod diag;
 pub mod error;
 pub mod stream;
 pub mod syn;
+pub mod visit;
 
 fn main() {
     println!("Hello, world!");

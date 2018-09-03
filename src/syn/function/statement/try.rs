@@ -15,6 +15,32 @@ pub struct Try {
     area: Span,
 }
 
+impl Try {
+    pub fn base(&self) -> &StatementGroup {
+        &self.base
+    }
+
+    pub fn base_mut(&mut self) -> &mut StatementGroup {
+        &mut self.base
+    }
+
+    pub fn catch(&self) -> &Roll<Catch> {
+        &self.catch
+    }
+
+    pub fn catch_mut(&mut self) -> &mut Roll<Catch> {
+        &mut self.catch
+    }
+
+    pub fn last(&self) -> &Option<StatementGroup> {
+        &self.last
+    }
+
+    pub fn last_mut(&mut self) -> &mut Option<StatementGroup> {
+        &mut self.last
+    }
+}
+
 impl Node for Try {
     fn parse(stream: &mut TokenStream) -> Result<Try> {
         let mut span = stream.expect_one(TokenKind::Try)?.span();

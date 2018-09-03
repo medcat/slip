@@ -17,6 +17,48 @@ pub struct Function {
     area: Span,
 }
 
+impl Function {
+    pub fn name(&self) -> &FunctionName {
+        &self.name
+    }
+
+    pub fn name_mut(&mut self) -> &mut FunctionName {
+        &mut self.name
+    }
+
+    pub fn generics(&self) -> &Roll<Type> {
+        &self.generics
+    }
+
+    pub fn generics_mut(&mut self) -> &mut Roll<Type> {
+        &mut self.generics
+    }
+
+    pub fn parameters(&self) -> &Roll<FunctionParameter> {
+        &self.parameters
+    }
+
+    pub fn parameters_mut(&mut self) -> &mut Roll<FunctionParameter> {
+        &mut self.parameters
+    }
+
+    pub fn retval(&self) -> &Option<Type> {
+        &self.retval
+    }
+
+    pub fn retval_mut(&mut self) -> &mut Option<Type> {
+        &mut self.retval
+    }
+
+    pub fn body(&self) -> &Option<StatementGroup> {
+        &self.body
+    }
+
+    pub fn body_mut(&mut self) -> &mut Option<StatementGroup> {
+        &mut self.body
+    }
+}
+
 impl Node for Function {
     fn parse(stream: &mut TokenStream) -> Result<Function> {
         let mut span = stream.expect_one(TokenKind::Fn)?.span();
@@ -173,7 +215,8 @@ impl Node for FunctionParameter {
                     TokenKind::This,
                     TokenKind::Underscore,
                     TokenKind::Identifier,
-                ]).map(|_| unreachable!()),
+                ])
+                .map(|_| unreachable!()),
         }
     }
 }

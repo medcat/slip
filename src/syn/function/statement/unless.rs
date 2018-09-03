@@ -8,6 +8,21 @@ use syn::{BasicNode, Node};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Unless(Expression, StatementGroup, Span);
 
+impl Unless {
+    pub fn condition(&self) -> &Expression {
+        &self.0
+    }
+    pub fn condition_mut(&mut self) -> &mut Expression {
+        &mut self.0
+    }
+    pub fn body(&self) -> &StatementGroup {
+        &self.1
+    }
+    pub fn body_mut(&mut self) -> &mut StatementGroup {
+        &mut self.1
+    }
+}
+
 impl Node for Unless {
     fn parse(stream: &mut TokenStream) -> Result<Unless> {
         let mut span = stream.expect_one(TokenKind::Unless)?.span();

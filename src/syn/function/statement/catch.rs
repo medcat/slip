@@ -12,6 +12,27 @@ pub struct Catch {
     area: Span,
 }
 
+impl Catch {
+    pub fn local(&self) -> &Token {
+        &self.local
+    }
+    pub fn local_mut(&mut self) -> &mut Token {
+        &mut self.local
+    }
+    pub fn kind(&self) -> &Type {
+        &self.kind
+    }
+    pub fn kind_mut(&mut self) -> &mut Type {
+        &mut self.kind
+    }
+    pub fn body(&self) -> &StatementGroup {
+        &self.body
+    }
+    pub fn body_mut(&mut self) -> &mut StatementGroup {
+        &mut self.body
+    }
+}
+
 impl Node for Catch {
     fn parse(stream: &mut TokenStream) -> Result<Catch> {
         let local = stream.expect_any(&[TokenKind::Underscore, TokenKind::Identifier])?;

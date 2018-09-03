@@ -6,6 +6,24 @@ use stream::{TokenKind, TokenStream};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Module(Type, Vec<Item>, Span);
 
+impl Module {
+    pub fn kind(&self) -> &Type {
+        &self.0
+    }
+
+    pub fn kind_mut(&mut self) -> &mut Type {
+        &mut self.0
+    }
+
+    pub fn items(&self) -> &[Item] {
+        &self.1[..]
+    }
+
+    pub fn items_mut(&mut self) -> &mut [Item] {
+        &mut self.1[..]
+    }
+}
+
 impl Node for Module {
     fn parse(stream: &mut TokenStream) -> Result<Module> {
         let mut span = stream.expect_one(TokenKind::Module)?.span();

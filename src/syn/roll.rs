@@ -44,14 +44,6 @@ impl<T: Node> Roll<T> {
         Roll::<T>::roll(stream, Some(start), sep, Some(end), false, false)
     }
 
-    pub fn value(&self) -> &[T] {
-        &self.0[..]
-    }
-
-    pub fn span(&self) -> Span {
-        self.1
-    }
-
     pub fn roll(
         stream: &mut TokenStream,
         start: Option<TokenKind>,
@@ -96,5 +88,50 @@ impl<T: Node> Roll<T> {
         }
 
         Ok(Roll(contents, span))
+    }
+}
+
+impl<T: Node> Roll<T> {
+    pub fn value(&self) -> &[T] {
+        &self.0[..]
+    }
+
+    pub fn span(&self) -> Span {
+        self.1
+    }
+
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &T> + 'a {
+        self.0.iter()
+    }
+
+    pub fn iter_mut<'a>(&'a mut self) -> impl Iterator<Item = &mut T> + 'a {
+        self.0.iter_mut()
+    }
+}
+
+impl<'a, T: Node> IntoIterator for &'a Roll<T> {
+    type Item = &'a T;
+    type IntoIter = ::std::slice::Iter<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl<'a, T: Node> IntoIterator for &'a mut Roll<T> {
+    type Item = &'a mut T;
+    type IntoIter = ::std::slice::IterMut<'a, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter_mut()
+    }
+}
+
+impl<T: Node> IntoIterator for Roll<T> {
+    type Item = T;
+    type IntoIter = <Vec<T> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }

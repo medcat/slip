@@ -20,6 +20,7 @@ pub use self::module::Module;
 pub use self::roll::Roll;
 pub use self::struct_::{Struct, StructElement};
 pub use self::unit::Unit;
+pub use self::use_::{Use, UseTrail};
 
 pub trait BasicNode: Sized {
     fn span(&self) -> Span;

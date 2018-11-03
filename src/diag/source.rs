@@ -1,4 +1,5 @@
 use super::Span;
+use serde_derive::*;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

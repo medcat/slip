@@ -1,4 +1,4 @@
-use stream::TokenKind;
+use crate::stream::TokenKind;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// This defines the precedence for expression operations.  Essentially,

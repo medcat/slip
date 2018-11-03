@@ -1,9 +1,10 @@
-use syn::{Enum, Function, Item, Module, Struct, Use};
+use super::Tail;
+use crate::syn::{Enum, Function, Item, Module, Struct, Use};
 
-pub trait RootVisitor {
+pub trait RootVisitor<'s> {
     type Error;
 
-    fn visit_item(&mut self, item: &mut Item) -> Result<(), Self::Error> {
+    fn visit_item(&mut self, item: &'s Item) -> Tail<(), Self::Error> {
         match item {
             Item::Enum(enum_) => self.visit_enum(enum_),
             Item::Function(func) => self.visit_function(func),
@@ -13,25 +14,27 @@ pub trait RootVisitor {
         }
     }
 
-    fn visit_enum(&mut self, _enum_: &mut Enum) -> Result<(), Self::Error> {
-        Ok(())
-    }
-    fn visit_struct(&mut self, _struct_: &mut Struct) -> Result<(), Self::Error> {
-        Ok(())
-    }
-    fn visit_use(&mut self, _use_: &mut Use) -> Result<(), Self::Error> {
-        Ok(())
+    fn visit_enum(&mut self, _enum_: &'s Enum) -> Tail<(), Self::Error> {
+        Ok(None)
     }
 
-    fn visit_module(&mut self, mod_: &mut Module) -> Result<(), Self::Error> {
-        for item in mod_.items_mut().iter_mut() {
+    fn visit_struct(&mut self, _struct_: &'s Struct) -> Tail<(), Self::Error> {
+        Ok(None)
+    }
+
+    fn visit_use(&mut self, _use_: &'s Use) -> Tail<(), Self::Error> {
+        Ok(None)
+    }
+
+    fn visit_module(&mut self, mod_: &'s Module) -> Tail<(), Self::Error> {
+        for item in mod_.items() {
             self.visit_item(item)?;
         }
 
-        Ok(())
+        Ok(None)
     }
 
-    fn visit_function(&mut self, _func: &mut Function) -> Result<(), Self::Error> {
-        Ok(())
+    fn visit_function(&mut self, _func: &'s Function) -> Tail<(), Self::Error> {
+        Ok(None)
     }
 }

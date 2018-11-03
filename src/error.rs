@@ -1,5 +1,6 @@
 use super::diag::{Position, Span};
 use super::stream::TokenKind;
+use error_chain::*;
 
 error_chain! {
     errors {
@@ -12,6 +13,10 @@ error_chain! {
             description("unexpected token found")
             display("unexpected token {}, expected one of {{{}}}, at {}", found,
                 expected.iter().map(|s| s.to_string()).collect::<Vec<_>>().join(", "), span)
+        }
+
+        MissingMainError {
+
         }
     }
 

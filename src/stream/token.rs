@@ -1,5 +1,7 @@
 use super::super::diag::*;
+use lazy_static::lazy_static;
 use regex::{Regex, RegexSet, RegexSetBuilder};
+use serde_derive::*;
 use std::borrow::Cow;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

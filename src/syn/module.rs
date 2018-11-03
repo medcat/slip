@@ -1,7 +1,8 @@
 use super::{BasicNode, Item, Node, Type};
-use diag::Span;
-use error::*;
-use stream::{TokenKind, TokenStream};
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{TokenKind, TokenStream};
+use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Module(Type, Vec<Item>, Span);

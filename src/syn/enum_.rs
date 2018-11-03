@@ -1,8 +1,9 @@
 use super::function::expression::Expression;
 use super::{BasicNode, Node, Roll, Type};
-use diag::Span;
-use error::*;
-use stream::{Token, TokenKind, TokenStream};
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenKind, TokenStream};
+use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Enum(Type, Roll<EnumVariant>, Span);

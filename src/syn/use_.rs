@@ -1,7 +1,8 @@
 use super::{BasicNode, Node, Roll};
-use diag::Span;
-use error::*;
-use stream::{Token, TokenKind, TokenStream};
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenKind, TokenStream};
+use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Use(Vec<Token>, Roll<UseTrail>, Span);
@@ -71,7 +72,26 @@ pub enum UseTrail {
     Star(Span),
 }
 
-impl UseTrail {}
+impl UseTrail {
+    pub fn base(&self) -> &[Token] {
+        match self {
+            UseTrail::Static(v, _) => &v[..],
+            UseTrail::Rename(v, _, _) => &v[..],
+            UseTrail::Star(_) => &[],
+        }
+    }
+
+    pub fn name(&self) -> Option<&[Token]> {
+        match self {
+            UseTrail::Static(v, _) => {
+                let tail = v.len();
+                Some(&v[(tail - 2)..(tail - 1)])
+            }
+            UseTrail::Rename(_, v, _) => Some(&v[..]),
+            UseTrail::Star(_) => None,
+        }
+    }
+}
 
 impl Node for UseTrail {
     fn parse(stream: &mut TokenStream) -> Result<UseTrail> {

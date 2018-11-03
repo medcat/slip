@@ -1,8 +1,9 @@
 use super::Expression;
-use diag::Span;
-use error::*;
-use stream::{Token, TokenKind, TokenStream};
-use syn::BasicNode;
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenKind, TokenStream};
+use crate::syn::BasicNode;
+use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SuffixOperation(Box<Expression>, Token, Span);

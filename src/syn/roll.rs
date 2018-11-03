@@ -1,4 +1,7 @@
 use super::*;
+use serde_derive::*;
+use std::cmp::{Eq, PartialEq};
+use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Roll<T: Node>(Vec<T>, Span);
@@ -109,6 +112,17 @@ impl<T: Node> Roll<T> {
     }
 }
 
+impl<T: Node + Clone> Roll<T> {
+    pub fn join(&self, other: &Self) -> Self {
+        let mut value = self.value().to_vec();
+        value.extend_from_slice(other.value());
+        let span = value
+            .iter()
+            .fold(Span::identity(), |acc, val| acc | val.span());
+        Roll(value, span)
+    }
+}
+
 impl<'a, T: Node> IntoIterator for &'a Roll<T> {
     type Item = &'a T;
     type IntoIter = ::std::slice::Iter<'a, T>;
@@ -133,5 +147,19 @@ impl<T: Node> IntoIterator for Roll<T> {
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()
+    }
+}
+
+impl<T: Node + PartialEq> PartialEq for Roll<T> {
+    fn eq(&self, other: &Roll<T>) -> bool {
+        self.0 == other.0
+    }
+}
+
+impl<T: Node + Eq> Eq for Roll<T> {}
+
+impl<T: Node + Hash> Hash for Roll<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.0.hash(state)
     }
 }

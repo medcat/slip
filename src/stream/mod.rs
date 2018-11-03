@@ -4,7 +4,7 @@ mod token;
 
 pub use self::token::{Token, TokenKind};
 use super::diag::*;
-use error::*;
+use crate::error::*;
 
 #[derive(Debug)]
 /// Performs the lexical analysis on a given string.  This implements

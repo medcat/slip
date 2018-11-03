@@ -1,8 +1,9 @@
 use self::statement::StatementGroup;
-use diag::Span;
-use error::*;
-use stream::{Token, TokenKind, TokenStream};
-use syn::{BasicNode, Node, Roll, Type};
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenKind, TokenStream};
+use crate::syn::{BasicNode, Node, Roll, Type};
+use serde_derive::*;
 
 pub mod expression;
 pub mod statement;
@@ -215,8 +216,7 @@ impl Node for FunctionParameter {
                     TokenKind::This,
                     TokenKind::Underscore,
                     TokenKind::Identifier,
-                ])
-                .map(|_| unreachable!()),
+                ]).map(|_| unreachable!()),
         }
     }
 }

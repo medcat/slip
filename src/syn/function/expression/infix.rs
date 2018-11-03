@@ -1,8 +1,9 @@
 use super::{Expression, Precedence};
-use diag::Span;
-use error::*;
-use stream::{Token, TokenStream};
-use syn::BasicNode;
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenStream};
+use crate::syn::BasicNode;
+use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InfixOperation(Box<Expression>, Token, Box<Expression>, Span);

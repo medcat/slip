@@ -1,10 +1,20 @@
 use super::{BasicNode, Node, Roll, Type};
-use diag::Span;
-use error::*;
-use stream::{Token, TokenKind, TokenStream};
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenKind, TokenStream};
+use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Struct(Type, Roll<StructElement>, Span);
+
+impl Struct {
+    pub fn kind(&self) -> &Type {
+        &self.0
+    }
+    pub fn elements(&self) -> &[StructElement] {
+        &self.1.value()
+    }
+}
 
 impl Node for Struct {
     fn parse(stream: &mut TokenStream) -> Result<Struct> {
@@ -31,6 +41,15 @@ impl BasicNode for Struct {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StructElement(Token, Type, Span);
+
+impl StructElement {
+    pub fn value(&self) -> &Token {
+        &self.0
+    }
+    pub fn kind(&self) -> &Type {
+        &self.1
+    }
+}
 
 impl Node for StructElement {
     fn parse(stream: &mut TokenStream) -> Result<StructElement> {

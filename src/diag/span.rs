@@ -1,3 +1,4 @@
+use serde_derive::*;
 use std::fmt;
 use std::ops::{BitOr, BitOrAssign};
 

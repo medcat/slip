@@ -1,6 +1,6 @@
-use diag::Span;
-use error::*;
-use stream::{Token, TokenKind, TokenStream};
+use crate::diag::Span;
+use crate::error::*;
+use crate::stream::{Token, TokenKind, TokenStream};
 
 mod enum_;
 pub mod function;
@@ -8,6 +8,7 @@ pub mod item;
 mod kind;
 mod module;
 mod roll;
+mod root;
 mod struct_;
 mod unit;
 mod use_;
@@ -18,6 +19,7 @@ pub use self::item::Item;
 pub use self::kind::Type;
 pub use self::module::Module;
 pub use self::roll::Roll;
+pub use self::root::Root;
 pub use self::struct_::{Struct, StructElement};
 pub use self::unit::Unit;
 pub use self::use_::{Use, UseTrail};

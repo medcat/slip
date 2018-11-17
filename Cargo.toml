@@ -11,4 +11,4 @@ regex = "1"
 serde = { version = "1.0.71", features = ["rc"] }
 serde_derive = "1.0.71"
 term = "0.4.6"
-inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "llvm7-0" }
+inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "llvm6-0" }

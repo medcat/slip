@@ -8,6 +8,16 @@ use serde_derive::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Enum(Type, Roll<EnumVariant>, Span);
 
+impl Enum {
+    pub fn kind(&self) -> &Type {
+        &self.0
+    }
+
+    pub fn variants(&self) -> &[EnumVariant] {
+        self.1.value()
+    }
+}
+
 impl Node for Enum {
     fn parse(stream: &mut TokenStream) -> Result<Enum> {
         let mut span = stream.expect_one(TokenKind::Enum)?.span();

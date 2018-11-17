@@ -11,6 +11,14 @@ pub struct Type {
 }
 
 impl Type {
+    pub fn new(parts: Vec<Token>, generics: Option<Roll<Type>>, area: Span) -> Type {
+        Type {
+            parts,
+            generics,
+            area,
+        }
+    }
+
     pub fn parts(&self) -> &[Token] {
         &self.parts[..]
     }
@@ -52,6 +60,14 @@ impl Type {
             parts,
             generics,
             area,
+        }
+    }
+
+    pub fn without_generics(&self) -> Self {
+        Type {
+            parts: self.parts.clone(),
+            generics: None,
+            area: self.area,
         }
     }
 }

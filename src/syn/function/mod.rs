@@ -148,6 +148,17 @@ static FUNCTION_NAME_OPERATORS: &[TokenKind] = &[
     TokenKind::Spaceship,
 ];
 
+impl FunctionName {
+    pub fn value(&self) -> &str {
+        match self {
+            FunctionName::Identifier(tok) => tok.value().unwrap(),
+            FunctionName::Operator(tok) => tok.value().unwrap(),
+            FunctionName::Brackets(_, _, _) => "[]",
+            FunctionName::Integer(tok) => tok.value().unwrap(),
+        }
+    }
+}
+
 impl Node for FunctionName {
     fn parse(stream: &mut TokenStream) -> Result<FunctionName> {
         match stream.peek_kind() {
@@ -186,6 +197,37 @@ impl BasicNode for FunctionName {
     }
 }
 
+impl PartialEq for FunctionName {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (FunctionName::Identifier(a), FunctionName::Identifier(b)) => a.value() == b.value(),
+            (FunctionName::Operator(a), FunctionName::Operator(b)) => a.kind() == b.kind(),
+            (FunctionName::Integer(a), FunctionName::Integer(b)) => a.value() == b.value(),
+            (FunctionName::Brackets(a1, a2, _), FunctionName::Brackets(b1, b2, _)) => {
+                a1.kind() == b1.kind() && a2.kind() == b2.kind()
+            }
+            _ => false,
+        }
+    }
+}
+
+impl Eq for FunctionName {}
+
+impl ::std::hash::Hash for FunctionName {
+    fn hash<H: ::std::hash::Hasher>(&self, hasher: &mut H) {
+        ::std::mem::discriminant(self).hash(hasher);
+        match self {
+            FunctionName::Identifier(a) => a.value().hash(hasher),
+            FunctionName::Operator(a) => a.kind().hash(hasher),
+            FunctionName::Integer(a) => a.value().hash(hasher),
+            FunctionName::Brackets(a, b, _) => {
+                a.kind().hash(hasher);
+                b.kind().hash(hasher);
+            }
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FunctionParameter {
     Static(Token, Type),
@@ -216,7 +258,8 @@ impl Node for FunctionParameter {
                     TokenKind::This,
                     TokenKind::Underscore,
                     TokenKind::Identifier,
-                ]).map(|_| unreachable!()),
+                ])
+                .map(|_| unreachable!()),
         }
     }
 }

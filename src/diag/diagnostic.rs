@@ -2,7 +2,7 @@ use super::Level;
 
 macro_rules! diag_variant {
     (pub enum $name:tt {
-        $($variant:tt = ($s:expr, $level:expr)),*
+        $($variant:tt = ($short:expr, $level:expr)),*
     }) => {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
         pub enum $name {
@@ -17,12 +17,18 @@ macro_rules! diag_variant {
                     $($name::$variant => $level),*
                 }
             }
+
+            pub fn short(&self) -> &'static str {
+                match self {
+                    $($name::$variant => $short),*
+                }
+            }
         }
 
         impl ::std::fmt::Display for $name {
             fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 match self {
-                    $($name::$variant => write!(f, $s),)*
+                    $($name::$variant => write!(f, $short),)*
                 }
             }
         }
@@ -38,7 +44,13 @@ diag_variant! {
         TestPanic = ("test-panic", Level::Panic),
 
         LiteralError = ("literal-error", Level::Error),
-        UndefinedLocal = ("undefined-local", Level::Error)
+        UndefinedLocal = ("undefined-local", Level::Error),
+
+        AmbiguousType = ("ambiguous-type", Level::Error),
+        UnknownType = ("unknown-type", Level::Error),
+
+        TypeReference = ("type-reference", Level::Info),
+        NonConstExpr = ("non-const-expr", Level::Error)
     }
 }
 

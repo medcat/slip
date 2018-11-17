@@ -7,6 +7,15 @@ use serde_derive::*;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Use(Vec<Token>, Roll<UseTrail>, Span);
 
+impl Use {
+    pub fn prefix(&self) -> &[Token] {
+        &self.0
+    }
+    pub fn trails(&self) -> &[UseTrail] {
+        self.1.value()
+    }
+}
+
 fn prefix<F, T>(stream: &mut TokenStream, mut act: F) -> Result<(Vec<Token>, Option<T>, Span)>
 where
     F: FnMut(&mut TokenStream, &mut Span) -> Result<T>,
@@ -36,7 +45,8 @@ fn prefix_basic(stream: &mut TokenStream) -> Result<(Vec<Token>, Span)> {
         stream
             .error_from(&[TokenKind::ModuleName])
             .map(|_| unimplemented!())
-    }).map(|(a, _, b)| (a, b))
+    })
+    .map(|(a, _, b)| (a, b))
 }
 
 impl Node for Use {

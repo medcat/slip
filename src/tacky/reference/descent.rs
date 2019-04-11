@@ -92,7 +92,7 @@ impl<'r, 's> Descent<'r, 's> {
             .is_some();
 
         if enum_unit {
-            self.descend_into_unit_enum(name, kind, enum_)
+            self.descend_into_unit_enum(name, &kind, enum_)
         } else {
             self.descend_into_value_enum(name, enum_)
         }
@@ -135,7 +135,7 @@ impl<'r, 's> Descent<'r, 's> {
     fn descend_into_unit_enum(
         &mut self,
         name: Name,
-        kind: syn::Type,
+        kind: &syn::Type,
         enum_: &'r syn::Enum,
     ) -> Result<()> {
         let mut variants: Vec<(String, Vec<(Type)>)> = vec![];
@@ -153,7 +153,7 @@ impl<'r, 's> Descent<'r, 's> {
                     collected.reserve(parts.value().len());
 
                     for part in parts.value().iter() {
-                        collected.push(normalize(self, &kind, part)?);
+                        collected.push(normalize(self, kind, part)?);
                     }
 
                     variants.push((name.value().unwrap().to_owned(), collected));

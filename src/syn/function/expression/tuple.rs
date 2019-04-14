@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct Tuple(Roll<Expression>);
 
 impl Node for Tuple {
-    fn parse(stream: &mut TokenStream) -> Result<Tuple> {
+    fn parse(stream: &mut TokenStream) -> Result<Tuple, Error> {
         let contents = Roll::with_terminate_trail(
             stream,
             TokenKind::LeftParen,

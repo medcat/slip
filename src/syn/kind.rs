@@ -73,7 +73,7 @@ impl Type {
 }
 
 impl Node for Type {
-    fn parse(stream: &mut TokenStream) -> Result<Type> {
+    fn parse(stream: &mut TokenStream) -> Result<Type, Error> {
         let start = stream.expect_one(TokenKind::ModuleName)?;
         let mut span = start.span();
         let mut contents = vec![start];

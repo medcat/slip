@@ -18,7 +18,7 @@ impl Return {
 }
 
 impl Node for Return {
-    fn parse(stream: &mut TokenStream) -> Result<Return> {
+    fn parse(stream: &mut TokenStream) -> Result<Return, Error> {
         let mut span = stream.expect_one(TokenKind::Return)?.span();
         let value = if !stream.peek_one(TokenKind::Semicolon) {
             let expr = Expression::parse(stream)?;

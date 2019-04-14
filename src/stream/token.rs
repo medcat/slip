@@ -214,6 +214,7 @@ define_tokens! {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
     pub enum TokenKind {
         Finally(Some(false), r"\Afinally", r#""finally""#),
+        Export(Some(false), r"\Aexport", r#""export""#),
         Module(Some(false), r"\Amodule", r#""module""#),
         Return(Some(false), r"\Areturn", r#""return""#),
         Struct(Some(false), r"\Astruct", r#""struct""#),

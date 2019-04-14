@@ -14,7 +14,7 @@ pub enum Call {
 }
 
 impl Call {
-    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<Call> {
+    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<Call, Error> {
         let arguments = Roll::with_terminate_trail(
             stream,
             TokenKind::LeftParen,

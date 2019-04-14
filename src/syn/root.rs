@@ -16,7 +16,7 @@ impl Root {
 }
 
 impl Node for Root {
-    fn parse(stream: &mut TokenStream) -> Result<Root> {
+    fn parse(stream: &mut TokenStream) -> Result<Root, Error> {
         let mut span = Span::identity();
         let mut items = vec![];
 

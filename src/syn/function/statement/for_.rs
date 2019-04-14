@@ -31,7 +31,7 @@ impl For {
 }
 
 impl Node for For {
-    fn parse(stream: &mut TokenStream) -> Result<For> {
+    fn parse(stream: &mut TokenStream) -> Result<For, Error> {
         let mut span = stream.expect_one(TokenKind::For)?.span();
         let token = stream.expect_one(TokenKind::Identifier)?;
         span |= token.span();

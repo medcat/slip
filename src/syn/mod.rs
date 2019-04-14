@@ -29,5 +29,5 @@ pub trait BasicNode: Sized {
 }
 
 pub trait Node: BasicNode {
-    fn parse(stream: &mut TokenStream) -> Result<Self>;
+    fn parse(stream: &mut TokenStream) -> Result<Self, Error>;
 }

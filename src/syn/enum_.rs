@@ -1,8 +1,8 @@
 use super::function::expression::Expression;
 use super::{BasicNode, Node, Roll, Type};
 use crate::diag::Span;
-use crate::error::*;
 use crate::stream::{Token, TokenKind, TokenStream};
+use crate::error::Error;
 use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -19,7 +19,7 @@ impl Enum {
 }
 
 impl Node for Enum {
-    fn parse(stream: &mut TokenStream) -> Result<Enum> {
+    fn parse(stream: &mut TokenStream) -> Result<Enum, Error> {
         let mut span = stream.expect_one(TokenKind::Enum)?.span();
         let kind = Type::parse(stream)?;
         span |= kind.span();
@@ -51,7 +51,7 @@ pub enum EnumVariant {
 }
 
 impl Node for EnumVariant {
-    fn parse(stream: &mut TokenStream) -> Result<EnumVariant> {
+    fn parse(stream: &mut TokenStream) -> Result<EnumVariant, Error> {
         let name = stream.expect_one(TokenKind::ModuleName)?;
         let mut span = name.span();
 

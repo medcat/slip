@@ -35,7 +35,7 @@ impl Catch {
 }
 
 impl Node for Catch {
-    fn parse(stream: &mut TokenStream) -> Result<Catch> {
+    fn parse(stream: &mut TokenStream) -> Result<Catch, Error> {
         let local = stream.expect_any(&[TokenKind::Underscore, TokenKind::Identifier])?;
         let mut span = local.span();
         let kind = Type::parse(stream)?;

@@ -1,4 +1,4 @@
 mod context;
-mod interpret;
+mod resolve;
 
 pub use self::context::Context;

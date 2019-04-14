@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct Map(Roll<MapPair>);
 
 impl Node for Map {
-    fn parse(stream: &mut TokenStream) -> Result<Map> {
+    fn parse(stream: &mut TokenStream) -> Result<Map, Error> {
         let contents = Roll::with_terminate_trail(
             stream,
             TokenKind::LeftBrace,
@@ -30,7 +30,7 @@ impl BasicNode for Map {
 pub struct MapPair(Expression, Expression, Span);
 
 impl Node for MapPair {
-    fn parse(stream: &mut TokenStream) -> Result<MapPair> {
+    fn parse(stream: &mut TokenStream) -> Result<MapPair, Error> {
         let key = Expression::parse(stream)?;
         let mut span = key.span();
         span |= stream.expect_one(TokenKind::Rocket)?.span();

@@ -50,7 +50,11 @@ diag_variant! {
         UnknownType = ("unknown-type", Level::Error),
 
         TypeReference = ("type-reference", Level::Info),
-        NonConstExpr = ("non-const-expr", Level::Error)
+        NonConstExpr = ("non-const-expr", Level::Error),
+
+        Generics = ("generics", Level::Error)
+
+
     }
 }
 

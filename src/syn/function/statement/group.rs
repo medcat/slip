@@ -19,7 +19,7 @@ impl StatementGroup {
 }
 
 impl Node for StatementGroup {
-    fn parse(stream: &mut TokenStream) -> Result<StatementGroup> {
+    fn parse(stream: &mut TokenStream) -> Result<StatementGroup, Error> {
         let mut span = stream.expect_one(TokenKind::LeftBrace)?.span();
         let mut contents = vec![];
         while !stream.peek_one(TokenKind::RightBrace) {

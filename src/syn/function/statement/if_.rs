@@ -28,7 +28,7 @@ impl If {
 }
 
 impl Node for If {
-    fn parse(stream: &mut TokenStream) -> Result<If> {
+    fn parse(stream: &mut TokenStream) -> Result<If, Error> {
         let mut span = stream.expect_one(TokenKind::If)?.span();
         let condition = Expression::parse(stream)?;
         span |= condition.span();
@@ -100,7 +100,7 @@ impl IfCondition {
 }
 
 impl IfCondition {
-    fn parse_elsif(stream: &mut TokenStream) -> Result<IfCondition> {
+    fn parse_elsif(stream: &mut TokenStream) -> Result<IfCondition, Error> {
         let mut span = stream.expect_one(TokenKind::Elsif)?.span();
         let condition = Expression::parse(stream)?;
         span |= condition.span();
@@ -109,7 +109,7 @@ impl IfCondition {
         Ok(IfCondition(Some(condition), base, span))
     }
 
-    fn parse_else(stream: &mut TokenStream) -> Result<IfCondition> {
+    fn parse_else(stream: &mut TokenStream) -> Result<IfCondition, Error> {
         let mut span = stream.expect_one(TokenKind::Else)?.span();
         let base = StatementGroup::parse(stream)?;
         span |= base.span();
@@ -118,7 +118,7 @@ impl IfCondition {
 }
 
 impl Node for IfCondition {
-    fn parse(stream: &mut TokenStream) -> Result<IfCondition> {
+    fn parse(stream: &mut TokenStream) -> Result<IfCondition, Error> {
         match stream.peek_kind() {
             Some(TokenKind::Elsif) => IfCondition::parse_elsif(stream),
             Some(TokenKind::Else) => IfCondition::parse_else(stream),

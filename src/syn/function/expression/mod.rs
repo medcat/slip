@@ -70,7 +70,7 @@ pub enum Expression {
 }
 
 impl Expression {
-    fn parse_prec(stream: &mut TokenStream, prec: Precedence) -> Result<Expression> {
+    fn parse_prec(stream: &mut TokenStream, prec: Precedence) -> Result<Expression, Error> {
         let mut base = Expression::parse_atom(stream)?;
         let mut next = stream.peek_kind();
         while prec.stay(next.into()) {
@@ -111,7 +111,7 @@ impl Expression {
         Ok(base)
     }
 
-    fn parse_atom(stream: &mut TokenStream) -> Result<Expression> {
+    fn parse_atom(stream: &mut TokenStream) -> Result<Expression, Error> {
         match stream.peek_kind() {
             Some(TokenKind::DoublePlus)
             | Some(TokenKind::DoubleMinus)
@@ -127,7 +127,7 @@ impl Expression {
 }
 
 impl Node for Expression {
-    fn parse(stream: &mut TokenStream) -> Result<Expression> {
+    fn parse(stream: &mut TokenStream) -> Result<Expression, Error> {
         Expression::parse_prec(stream, Precedence::Default)
     }
 }

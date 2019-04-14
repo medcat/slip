@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct Index(Box<Expression>, Roll<Expression>, Span);
 
 impl Index {
-    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<Index> {
+    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<Index, Error> {
         let arguments = Roll::with_terminate_trail(
             stream,
             TokenKind::LeftBrace,

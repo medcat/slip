@@ -1,5 +1,3 @@
-use crate::error::*;
-
 mod diagnostic;
 mod instance;
 mod level;
@@ -13,6 +11,7 @@ pub use self::level::*;
 use self::overrides::Overrides;
 pub use self::source::*;
 pub use self::span::*;
+use std::io::Result as IoResult;
 
 #[derive(Debug, Clone)]
 pub struct DiagnosticSet<'s> {
@@ -44,7 +43,7 @@ impl<'s> DiagnosticSet<'s> {
         self.overrides.insert(diag, level);
     }
 
-    pub fn emit(&mut self, diag: Diagnostic, span: Span, message: String) -> Result<()> {
+    pub fn emit(&mut self, diag: Diagnostic, span: Span, message: String) -> IoResult<()> {
         let level = self.overrides.lookup(&diag);
         let instance = Instance::new(diag, level, span, message);
         if level >= self.report {

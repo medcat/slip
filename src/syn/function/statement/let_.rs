@@ -34,7 +34,7 @@ impl Let {
 }
 
 impl Node for Let {
-    fn parse(stream: &mut TokenStream) -> Result<Let> {
+    fn parse(stream: &mut TokenStream) -> Result<Let, Error> {
         let mut span = stream.expect_one(TokenKind::Let)?.span();
         let name = stream.expect_one(TokenKind::Identifier)?;
         span |= name.span();

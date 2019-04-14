@@ -17,7 +17,7 @@ impl Struct {
 }
 
 impl Node for Struct {
-    fn parse(stream: &mut TokenStream) -> Result<Struct> {
+    fn parse(stream: &mut TokenStream) -> Result<Struct, Error> {
         let mut span = stream.expect_one(TokenKind::Struct)?.span();
         let kind = Type::parse(stream)?;
         span |= kind.span();
@@ -52,7 +52,7 @@ impl StructElement {
 }
 
 impl Node for StructElement {
-    fn parse(stream: &mut TokenStream) -> Result<StructElement> {
+    fn parse(stream: &mut TokenStream) -> Result<StructElement, Error> {
         let name = stream.expect_one(TokenKind::Identifier)?;
         let colon = stream.expect_one(TokenKind::Colon)?;
         let kind = Type::parse(stream)?;

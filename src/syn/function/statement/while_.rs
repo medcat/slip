@@ -25,7 +25,7 @@ impl While {
 }
 
 impl Node for While {
-    fn parse(stream: &mut TokenStream) -> Result<While> {
+    fn parse(stream: &mut TokenStream) -> Result<While, Error> {
         let mut span = stream.expect_one(TokenKind::While)?.span();
         let condition = Expression::parse(stream)?;
         span |= condition.span();

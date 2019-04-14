@@ -18,7 +18,7 @@ impl Unit {
 }
 
 impl Node for Unit {
-    fn parse(stream: &mut TokenStream) -> Result<Unit> {
+    fn parse(stream: &mut TokenStream) -> Result<Unit, Error> {
         let mut span = Span::identity();
         let mut items = vec![];
         while !stream.eof() {

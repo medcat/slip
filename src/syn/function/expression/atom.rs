@@ -22,7 +22,7 @@ pub enum Atom {
 }
 
 impl Node for Atom {
-    fn parse(stream: &mut TokenStream) -> Result<Atom> {
+    fn parse(stream: &mut TokenStream) -> Result<Atom, Error> {
         match stream.peek_kind() {
             Some(TokenKind::SingleString) => Ok(Atom::SingleString(
                 stream.expect_one(TokenKind::SingleString)?,
@@ -60,7 +60,8 @@ impl Node for Atom {
                     TokenKind::LeftBrace,
                     TokenKind::LeftBracket,
                     TokenKind::LeftParen,
-                ]).map(|_| unreachable!()),
+                ])
+                .map(|_| unreachable!()),
         }
     }
 }

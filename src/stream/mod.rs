@@ -4,7 +4,7 @@ mod token;
 
 pub use self::token::{Token, TokenKind};
 use super::diag::*;
-use crate::error::*;
+use crate::error::Error;
 
 #[derive(Debug)]
 /// Performs the lexical analysis on a given string.  This implements
@@ -28,7 +28,7 @@ use crate::error::*;
 ///     TokenKind::Semicolon]);
 /// # }
 /// ```
-pub struct TokenStream<'a>(&'a str, usize, Position, Option<Result<Token>>);
+pub struct TokenStream<'a>(&'a str, usize, Position, Option<Result<Token, Error>>);
 
 impl<'a> TokenStream<'a> {
     /// Creates a new lexer from the given source.  The TokenStream's
@@ -59,7 +59,7 @@ impl<'a> TokenStream<'a> {
     /// lookahead, without advancing the iterator.  This follows
     /// the same semantics as [`std::iter::Peekable::peek`], except
     /// you don't have to call [`std::iter::Iterator::peekable`].
-    pub fn peek(&mut self) -> Option<&Result<Token>> {
+    pub fn peek(&mut self) -> Option<&Result<Token, Error>> {
         if self.3.is_none() {
             let result = self.next();
             self.3 = result;
@@ -73,7 +73,7 @@ impl<'a> TokenStream<'a> {
     /// what token was given, what tokens were expected, and where to
     /// find them.  Note that this passes through errors from the
     /// iterator.
-    pub fn expect_any(&mut self, kinds: &[TokenKind]) -> Result<Token> {
+    pub fn expect_any(&mut self, kinds: &[TokenKind]) -> Result<Token, Error> {
         match self.next() {
             Some(Ok(token)) => {
                 if kinds.contains(&token.kind) {
@@ -91,7 +91,7 @@ impl<'a> TokenStream<'a> {
     /// token kind, and if the next token isn't that token, it errors;
     /// or, if there are no more tokens, it errors.  Note that this
     /// passes errors through from the iterator.
-    pub fn expect_one(&mut self, kind: TokenKind) -> Result<Token> {
+    pub fn expect_one(&mut self, kind: TokenKind) -> Result<Token, Error> {
         match self.next() {
             Some(Ok(token)) => {
                 if token.kind == kind {
@@ -155,7 +155,7 @@ impl<'a> TokenStream<'a> {
     /// ```
     /// lexer.error_from(&[TokenKind::Module]).map(|_| unreachable!())
     /// ```
-    pub fn error_from(&mut self, expected: &[TokenKind]) -> Result<()> {
+    pub fn error_from(&mut self, expected: &[TokenKind]) -> Result<(), Error> {
         let next = self.next();
         match next {
             Some(Ok(token)) => error(token.kind, expected, token.span),
@@ -164,16 +164,16 @@ impl<'a> TokenStream<'a> {
         }
     }
 
-    pub fn rolling<F, T>(
+    pub fn rolling<F, T, E: From<Error>>(
         &mut self,
         end: Option<TokenKind>,
         seperator: TokenKind,
         at_least: bool,
         trailing: bool,
         mut func: F,
-    ) -> Result<Vec<T>>
+    ) -> Result<Vec<T>, E>
     where
-        F: FnMut(&mut Self) -> Result<T>,
+        F: FnMut(&mut Self) -> Result<T, E>,
     {
         let terminating = |lex: &mut TokenStream<'a>| match end {
             Some(v) => lex.peek_one(v),
@@ -222,7 +222,7 @@ impl<'a> TokenStream<'a> {
 }
 
 impl<'a> Iterator for TokenStream<'a> {
-    type Item = Result<Token>;
+    type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.3.is_some() {
@@ -259,7 +259,11 @@ impl<'a> Iterator for TokenStream<'a> {
             None => {
                 self.1 = self.0.len();
                 let c = point.chars().next().unwrap_or('\u{fffd}');
-                Some(Err(ErrorKind::UnexpectedSymbolError(c, self.2).into()))
+                Some(Err(Error::UnexpectedSymbolError {
+                    symbol: c,
+                    line: self.2.line(),
+                    column: self.2.column(),
+                }))
             }
         }
     }
@@ -273,11 +277,17 @@ fn find_next(source: &str) -> Option<(TokenKind, ::regex::Match)> {
             let kind = TokenKind::tokens()[idx];
             let pattern = &TokenKind::value()[idx];
             pattern.find(source).map(|m| (kind, idx, m))
-        }).max_by(|(_, ai, am), (_, bi, bm)| {
+        })
+        .max_by(|(_, ai, am), (_, bi, bm)| {
             am.as_str().len().cmp(&bm.as_str().len()).then(bi.cmp(ai))
-        }).map(|(k, _, m)| (k, m))
+        })
+        .map(|(k, _, m)| (k, m))
 }
 
-fn error<R>(current: TokenKind, expected: &[TokenKind], span: Span) -> Result<R> {
-    Err(ErrorKind::UnexpectedTokenError(current, expected.to_owned(), span).into())
+fn error<R>(current: TokenKind, expected: &[TokenKind], span: Span) -> Result<R, Error> {
+    Err(Error::UnexpectedTokenError {
+        current,
+        expected: expected.to_owned(),
+        area: span,
+    })
 }

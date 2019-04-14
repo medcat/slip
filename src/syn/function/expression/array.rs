@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct Array(Roll<Expression>);
 
 impl Node for Array {
-    fn parse(stream: &mut TokenStream) -> Result<Array> {
+    fn parse(stream: &mut TokenStream) -> Result<Array, Error> {
         let contents = Roll::with_terminate_trail(
             stream,
             TokenKind::LeftBracket,

@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct InfixOperation(Box<Expression>, Token, Box<Expression>, Span);
 
 impl InfixOperation {
-    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<InfixOperation> {
+    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<InfixOperation, Error> {
         let op = stream.next().unwrap().unwrap();
         let prec: Precedence = op.kind.into();
         let right = Expression::parse_prec(stream, prec)?;

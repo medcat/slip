@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct PrefixOperation(Box<Expression>, Token, Span);
 
 impl Node for PrefixOperation {
-    fn parse(stream: &mut TokenStream) -> Result<PrefixOperation> {
+    fn parse(stream: &mut TokenStream) -> Result<PrefixOperation, Error> {
         let op = stream.expect_any(&[
             TokenKind::DoublePlus,
             TokenKind::DoubleMinus,

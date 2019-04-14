@@ -43,7 +43,7 @@ impl Try {
 }
 
 impl Node for Try {
-    fn parse(stream: &mut TokenStream) -> Result<Try> {
+    fn parse(stream: &mut TokenStream) -> Result<Try, Error> {
         let mut span = stream.expect_one(TokenKind::Try)?.span();
         let base = StatementGroup::parse(stream)?;
         span |= base.span();

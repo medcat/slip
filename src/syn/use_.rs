@@ -16,9 +16,12 @@ impl Use {
     }
 }
 
-fn prefix<F, T>(stream: &mut TokenStream, mut act: F) -> Result<(Vec<Token>, Option<T>, Span)>
+fn prefix<F, T>(
+    stream: &mut TokenStream,
+    mut act: F,
+) -> Result<(Vec<Token>, Option<T>, Span), Error>
 where
-    F: FnMut(&mut TokenStream, &mut Span) -> Result<T>,
+    F: FnMut(&mut TokenStream, &mut Span) -> Result<T, Error>,
 {
     let current = stream.expect_one(TokenKind::ModuleName)?;
     let mut span = current.span();
@@ -40,7 +43,7 @@ where
     Ok((content, value, span))
 }
 
-fn prefix_basic(stream: &mut TokenStream) -> Result<(Vec<Token>, Span)> {
+fn prefix_basic(stream: &mut TokenStream) -> Result<(Vec<Token>, Span), Error> {
     prefix(stream, |stream, _| {
         stream
             .error_from(&[TokenKind::ModuleName])
@@ -50,7 +53,7 @@ fn prefix_basic(stream: &mut TokenStream) -> Result<(Vec<Token>, Span)> {
 }
 
 impl Node for Use {
-    fn parse(stream: &mut TokenStream) -> Result<Use> {
+    fn parse(stream: &mut TokenStream) -> Result<Use, Error> {
         let span = stream.expect_one(TokenKind::Use)?.span();
 
         let (prefix, content, inspan) = prefix(stream, |stream, span| {
@@ -104,7 +107,7 @@ impl UseTrail {
 }
 
 impl Node for UseTrail {
-    fn parse(stream: &mut TokenStream) -> Result<UseTrail> {
+    fn parse(stream: &mut TokenStream) -> Result<UseTrail, Error> {
         match stream.peek_kind() {
             Some(TokenKind::ModuleName) => {
                 let (val, mut span) = prefix_basic(stream)?;

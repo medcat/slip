@@ -10,7 +10,7 @@ use serde_derive::*;
 pub struct Access(pub(super) Box<Expression>, pub(super) FunctionName, Span);
 
 impl Access {
-    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<Access> {
+    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<Access, Error> {
         let mut span = left.span();
         span |= stream.expect_one(TokenKind::Period)?.span();
         let name = FunctionName::parse(stream)?;

@@ -25,7 +25,7 @@ impl Unless {
 }
 
 impl Node for Unless {
-    fn parse(stream: &mut TokenStream) -> Result<Unless> {
+    fn parse(stream: &mut TokenStream) -> Result<Unless, Error> {
         let mut span = stream.expect_one(TokenKind::Unless)?.span();
         let condition = Expression::parse(stream)?;
         span |= condition.span();

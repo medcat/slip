@@ -19,7 +19,7 @@ pub enum Item {
 }
 
 impl Node for Item {
-    fn parse(stream: &mut TokenStream) -> Result<Item> {
+    fn parse(stream: &mut TokenStream) -> Result<Item, Error> {
         match stream.peek_kind() {
             Some(TokenKind::Fn) => Ok(Item::Function(Function::parse(stream)?)),
             Some(TokenKind::Struct) => Ok(Item::Struct(Struct::parse(stream)?)),
@@ -33,7 +33,8 @@ impl Node for Item {
                     TokenKind::Enum,
                     TokenKind::Module,
                     TokenKind::Use,
-                ]).map(|_| unreachable!()),
+                ])
+                .map(|_| unreachable!()),
         }
     }
 }

@@ -39,7 +39,7 @@ pub enum Statement {
 }
 
 impl Node for Statement {
-    fn parse(stream: &mut TokenStream) -> Result<Statement> {
+    fn parse(stream: &mut TokenStream) -> Result<Statement, Error> {
         match stream.peek_kind() {
             Some(TokenKind::While) => Ok(Statement::While(While::parse(stream)?)),
             Some(TokenKind::Try) => Ok(Statement::Try(Try::parse(stream)?)),

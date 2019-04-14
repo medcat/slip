@@ -26,7 +26,7 @@ impl Module {
 }
 
 impl Node for Module {
-    fn parse(stream: &mut TokenStream) -> Result<Module> {
+    fn parse(stream: &mut TokenStream) -> Result<Module, Error> {
         let mut span = stream.expect_one(TokenKind::Module)?.span();
         let kind = Type::parse(stream)?;
         span |= kind.span();

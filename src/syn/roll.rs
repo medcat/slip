@@ -16,7 +16,7 @@ impl<T: Node> Roll<T> {
         start: TokenKind,
         sep: TokenKind,
         end: TokenKind,
-    ) -> Result<Roll<T>> {
+    ) -> Result<Roll<T>, Error> {
         Roll::<T>::roll(stream, Some(start), sep, Some(end), true, true)
     }
 
@@ -25,7 +25,7 @@ impl<T: Node> Roll<T> {
         start: TokenKind,
         sep: TokenKind,
         end: TokenKind,
-    ) -> Result<Roll<T>> {
+    ) -> Result<Roll<T>, Error> {
         Roll::<T>::roll(stream, Some(start), sep, Some(end), true, false)
     }
 
@@ -34,7 +34,7 @@ impl<T: Node> Roll<T> {
         start: TokenKind,
         sep: TokenKind,
         end: TokenKind,
-    ) -> Result<Roll<T>> {
+    ) -> Result<Roll<T>, Error> {
         Roll::<T>::roll(stream, Some(start), sep, Some(end), false, true)
     }
 
@@ -43,7 +43,7 @@ impl<T: Node> Roll<T> {
         start: TokenKind,
         sep: TokenKind,
         end: TokenKind,
-    ) -> Result<Roll<T>> {
+    ) -> Result<Roll<T>, Error> {
         Roll::<T>::roll(stream, Some(start), sep, Some(end), false, false)
     }
 
@@ -54,7 +54,7 @@ impl<T: Node> Roll<T> {
         end: Option<TokenKind>,
         at_least: bool,
         trail: bool,
-    ) -> Result<Roll<T>> {
+    ) -> Result<Roll<T>, Error> {
         let mut span = match start {
             Some(start) => stream.expect_one(start)?.span(),
             None => Span::identity(),
@@ -101,6 +101,10 @@ impl<T: Node> Roll<T> {
 
     pub fn span(&self) -> Span {
         self.1
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &T> + 'a {

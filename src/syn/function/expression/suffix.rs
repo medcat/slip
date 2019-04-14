@@ -9,7 +9,7 @@ use serde_derive::*;
 pub struct SuffixOperation(Box<Expression>, Token, Span);
 
 impl SuffixOperation {
-    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<SuffixOperation> {
+    pub fn parse(stream: &mut TokenStream, left: Expression) -> Result<SuffixOperation, Error> {
         let op = stream.expect_any(&[TokenKind::DoublePlus, TokenKind::DoubleMinus])?;
         let span = left.span() | op.span();
         Ok(SuffixOperation(Box::new(left), op, span))

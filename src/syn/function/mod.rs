@@ -10,6 +10,7 @@ pub mod statement;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Function {
+    export: bool,
     name: FunctionName,
     generics: Roll<Type>,
     parameters: Roll<FunctionParameter>,
@@ -19,6 +20,14 @@ pub struct Function {
 }
 
 impl Function {
+    pub fn export(&self) -> bool {
+        self.export
+    }
+
+    pub fn export_mut(&mut self) -> &mut bool {
+        &mut self.export
+    }
+
     pub fn name(&self) -> &FunctionName {
         &self.name
     }
@@ -61,8 +70,16 @@ impl Function {
 }
 
 impl Node for Function {
-    fn parse(stream: &mut TokenStream) -> Result<Function> {
+    fn parse(stream: &mut TokenStream) -> Result<Function, Error> {
+        let export = if stream.peek_one(TokenKind::Export) {
+            Some(stream.expect_one(TokenKind::Export)?.span())
+        } else {
+            None
+        };
         let mut span = stream.expect_one(TokenKind::Fn)?.span();
+        if let Some(s) = export {
+            span |= s;
+        }
         let name = FunctionName::parse(stream)?;
         span |= name.span();
         let generics = if stream.peek_one(TokenKind::LessThan) {
@@ -101,6 +118,7 @@ impl Node for Function {
         };
 
         Ok(Function {
+            export: export.is_some(),
             name,
             generics,
             parameters,
@@ -160,7 +178,7 @@ impl FunctionName {
 }
 
 impl Node for FunctionName {
-    fn parse(stream: &mut TokenStream) -> Result<FunctionName> {
+    fn parse(stream: &mut TokenStream) -> Result<FunctionName, Error> {
         match stream.peek_kind() {
             Some(TokenKind::Identifier) => Ok(FunctionName::Identifier(
                 stream.expect_one(TokenKind::Identifier)?,
@@ -236,7 +254,7 @@ pub enum FunctionParameter {
 }
 
 impl Node for FunctionParameter {
-    fn parse(stream: &mut TokenStream) -> Result<FunctionParameter> {
+    fn parse(stream: &mut TokenStream) -> Result<FunctionParameter, Error> {
         match stream.peek_kind() {
             Some(TokenKind::This) => {
                 Ok(FunctionParameter::This(stream.expect_one(TokenKind::This)?))

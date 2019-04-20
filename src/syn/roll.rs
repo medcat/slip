@@ -107,6 +107,10 @@ impl<T: Node> Roll<T> {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &T> + 'a {
         self.0.iter()
     }

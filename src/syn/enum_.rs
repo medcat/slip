@@ -1,8 +1,8 @@
 use super::function::expression::Expression;
 use super::{BasicNode, Node, Roll, Type};
 use crate::diag::Span;
-use crate::stream::{Token, TokenKind, TokenStream};
 use crate::error::Error;
+use crate::stream::{Token, TokenKind, TokenStream};
 use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,7 +46,7 @@ impl BasicNode for Enum {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum EnumVariant {
     Name(Token),
-    Value(Token, Expression, Span),
+    Value(Token, Box<Expression>, Span),
     Unit(Token, Roll<Type>, Span),
 }
 
@@ -60,7 +60,7 @@ impl Node for EnumVariant {
                 span |= stream.expect_one(TokenKind::Equals)?.span();
                 let expr = Expression::parse(stream)?;
                 span |= expr.span();
-                Ok(EnumVariant::Value(name, expr, span))
+                Ok(EnumVariant::Value(name, Box::new(expr), span))
             }
             Some(TokenKind::LeftParen) => {
                 let contents = Roll::with_terminate_trail_once(

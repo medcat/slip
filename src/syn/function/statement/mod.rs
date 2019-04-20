@@ -27,13 +27,13 @@ pub use self::while_::While;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Statement {
-    Unless(Unless),
+    Unless(Box<Unless>),
     Return(Return),
-    While(While),
-    For(For),
+    While(Box<While>),
+    For(Box<For>),
     // Use(Use),
-    Let(Let),
-    Try(Try),
+    Let(Box<Let>),
+    Try(Box<Try>),
     If(If),
     Expression(Expression),
 }
@@ -41,10 +41,13 @@ pub enum Statement {
 impl Node for Statement {
     fn parse(stream: &mut TokenStream) -> Result<Statement, Error> {
         match stream.peek_kind() {
-            Some(TokenKind::While) => Ok(Statement::While(While::parse(stream)?)),
-            Some(TokenKind::Try) => Ok(Statement::Try(Try::parse(stream)?)),
-            Some(TokenKind::For) => Ok(Statement::For(For::parse(stream)?)),
-            // Some(TokenKind::Use) => Ok(Statement::Use(Use::parse(stream)?)),
+            Some(TokenKind::Unless) => Ok(Statement::Unless(Box::new(Unless::parse(stream)?))),
+            Some(TokenKind::Return) => Ok(Statement::Return(Return::parse(stream)?)),
+            Some(TokenKind::While) => Ok(Statement::While(Box::new(While::parse(stream)?))),
+            Some(TokenKind::For) => Ok(Statement::For(Box::new(For::parse(stream)?))),
+            Some(TokenKind::Let) => Ok(Statement::Let(Box::new(Let::parse(stream)?))),
+            Some(TokenKind::Try) => Ok(Statement::Try(Box::new(Try::parse(stream)?))),
+            Some(TokenKind::If) => Ok(Statement::If(If::parse(stream)?)),
             _ => {
                 let expr = Expression::parse(stream)?;
                 stream.expect_one(TokenKind::Semicolon)?;

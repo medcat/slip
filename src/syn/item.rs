@@ -11,20 +11,20 @@ use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Item {
-    Function(Function),
-    Struct(Struct),
-    Enum(Enum),
-    Module(Module),
+    Function(Box<Function>),
+    Struct(Box<Struct>),
+    Enum(Box<Enum>),
+    Module(Box<Module>),
     Use(Use),
 }
 
 impl Node for Item {
     fn parse(stream: &mut TokenStream) -> Result<Item, Error> {
         match stream.peek_kind() {
-            Some(TokenKind::Fn) => Ok(Item::Function(Function::parse(stream)?)),
-            Some(TokenKind::Struct) => Ok(Item::Struct(Struct::parse(stream)?)),
-            Some(TokenKind::Enum) => Ok(Item::Enum(Enum::parse(stream)?)),
-            Some(TokenKind::Module) => Ok(Item::Module(Module::parse(stream)?)),
+            Some(TokenKind::Fn) => Ok(Item::Function(Box::new(Function::parse(stream)?))),
+            Some(TokenKind::Struct) => Ok(Item::Struct(Box::new(Struct::parse(stream)?))),
+            Some(TokenKind::Enum) => Ok(Item::Enum(Box::new(Enum::parse(stream)?))),
+            Some(TokenKind::Module) => Ok(Item::Module(Box::new(Module::parse(stream)?))),
             Some(TokenKind::Use) => Ok(Item::Use(Use::parse(stream)?)),
             _ => stream
                 .error_from(&[

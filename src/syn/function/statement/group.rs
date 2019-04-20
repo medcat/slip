@@ -9,6 +9,18 @@ use serde_derive::*;
 pub struct StatementGroup(Vec<Statement>, Span);
 
 impl StatementGroup {
+    pub fn statements(&self) -> &[Statement] {
+        &self.0
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &Statement> + 'a {
         self.0.iter()
     }

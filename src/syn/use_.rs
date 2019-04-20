@@ -67,8 +67,9 @@ impl Node for Use {
             Ok(roll)
         })?;
 
-        let content = content.unwrap_or_else(|| Roll::empty());
-        Ok(Use(prefix, content, span | inspan))
+        let tok = stream.expect_one(TokenKind::Semicolon)?.span();
+        let content = content.unwrap_or_else(Roll::empty);
+        Ok(Use(prefix, content, span | inspan | tok))
     }
 }
 
@@ -102,6 +103,34 @@ impl UseTrail {
             }
             UseTrail::Rename(_, v, _) => Some(&v[..]),
             UseTrail::Star(_) => None,
+        }
+    }
+
+    pub fn applies(&self, ty: &super::Type) -> bool {
+        match self.name() {
+            None => true,
+            Some(part) if part == ty.parts() => true,
+            _ => false,
+        }
+    }
+
+    pub fn combine(&self, prefix: &[Token], current: &super::Type) -> super::Type {
+        use super::Type;
+        match self {
+            UseTrail::Static(_, _) | UseTrail::Star(_) => {
+                let mut parts = Vec::with_capacity(prefix.len() + current.parts().len());
+                parts.extend_from_slice(&prefix);
+                parts.extend_from_slice(&current.parts());
+
+                Type::new(parts, current.generics().as_ref().cloned(), current.span())
+            }
+
+            UseTrail::Rename(from, _, _) => {
+                let mut parts = Vec::with_capacity(prefix.len() + from.len());
+                parts.extend_from_slice(&prefix);
+                parts.extend_from_slice(&from);
+                Type::new(parts, current.generics().as_ref().cloned(), current.span())
+            }
         }
     }
 }

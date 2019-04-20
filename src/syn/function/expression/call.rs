@@ -8,9 +8,9 @@ use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Call {
-    Unified(Box<Expression>, FunctionName, Roll<Expression>, Span),
-    Standard(Token, Roll<Expression>, Span),
-    Expression(Box<Expression>, Roll<Expression>, Span),
+    Unified(Box<Unified>),
+    Standard(Box<Standard>),
+    Expression(Box<Expr>),
 }
 
 impl Call {
@@ -24,9 +24,11 @@ impl Call {
         let span = left.span() | arguments.span();
 
         match left {
-            Expression::Access(access) => Ok(Call::Unified(access.0, access.1, arguments, span)),
-            Expression::Atom(Atom::Ident(tok)) => Ok(Call::Standard(tok, arguments, span)),
-            v => Ok(Call::Expression(Box::new(v), arguments, span)),
+            Expression::Access(access) => {
+                Ok(Call::Unified(Box::new(Unified::new(*access.0, access.1, arguments, span))))
+            }
+            Expression::Atom(Atom::Ident(tok)) => Ok(Call::Standard(Box::new(Standard::new(tok, arguments, span)))),
+            v => Ok(Call::Expression(Box::new(Expr::new(v, arguments, span)))),
         }
     }
 }
@@ -34,9 +36,50 @@ impl Call {
 impl BasicNode for Call {
     fn span(&self) -> Span {
         match self {
-            Call::Unified(_, _, _, span) => *span,
-            Call::Standard(_, _, span) => *span,
-            Call::Expression(_, _, span) => *span,
+            Call::Unified(un) => un.span,
+            Call::Standard(std) => std.span,
+            Call::Expression(expr) => expr.span,
         }
+    }
+}
+
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Unified {
+    pub base: Expression,
+    pub func: FunctionName,
+    pub params: Roll<Expression>,
+    pub span: Span,
+}
+
+impl Unified {
+    fn new(base: Expression, func: FunctionName, params: Roll<Expression>, span: Span) -> Unified {
+        Unified { base, func, params, span }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Standard {
+    pub token: Token,
+    pub params: Roll<Expression>,
+    pub span: Span,
+}
+
+impl Standard {
+    fn new(token: Token, params: Roll<Expression>, span: Span) -> Standard {
+        Standard { token, params, span }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Expr {
+    pub base: Expression,
+    pub params: Roll<Expression>,
+    pub span: Span,
+}
+
+impl Expr {
+    fn new(base: Expression, params: Roll<Expression>, span: Span) -> Expr {
+        Expr { base, params, span }
     }
 }

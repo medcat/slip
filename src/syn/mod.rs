@@ -1,6 +1,7 @@
 use crate::diag::Span;
 use crate::error::*;
 use crate::stream::{Token, TokenKind, TokenStream};
+use std::sync::Arc;
 
 mod enum_;
 pub mod function;
@@ -30,4 +31,32 @@ pub trait BasicNode: Sized {
 
 pub trait Node: BasicNode {
     fn parse(stream: &mut TokenStream) -> Result<Self, Error>;
+}
+
+pub fn of(source: String) -> Result<Root, Error> {
+    let mut set = crate::diag::DiagnosticSet::new();
+    let file = set.create("(implicit)".to_owned(), source);
+    let mut token_stream = crate::stream::TokenStream::new(file, &mut set);
+    Root::parse(&mut token_stream)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ::test::Bencher;
+
+    const BASIC_SOURCE: &str = r#"
+use Slip::List;
+
+module Some::Program {
+    fn some_func(): Slip::Int {
+        return 42;
+    }
+}
+    "#;
+
+    #[bench]
+    fn bench_basic_parse(b: &mut Bencher) {
+        b.iter(|| of(BASIC_SOURCE.to_owned()).unwrap())
+    }
 }

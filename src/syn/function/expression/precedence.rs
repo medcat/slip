@@ -98,6 +98,6 @@ impl Into<Precedence> for TokenKind {
 
 impl Into<Precedence> for Option<TokenKind> {
     fn into(self) -> Precedence {
-        self.map(|v| v.into()).unwrap_or(Precedence::None)
+        self.map(Into::into).unwrap_or(Precedence::None)
     }
 }

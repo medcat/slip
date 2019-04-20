@@ -64,7 +64,7 @@ pub enum Expression {
     Suffix(SuffixOperation),
     Prefix(PrefixOperation),
     Call(Call),
-    Access(Access),
+    Access(Box<Access>),
     Index(Index),
     Atom(Atom),
 }
@@ -75,7 +75,9 @@ impl Expression {
         let mut next = stream.peek_kind();
         while prec.stay(next.into()) {
             base = match next {
-                Some(TokenKind::Period) => Expression::Access(Access::parse(stream, base)?),
+                Some(TokenKind::Period) => {
+                    Expression::Access(Box::new(Access::parse(stream, base)?))
+                }
                 Some(TokenKind::LeftParen) => Expression::Call(Call::parse(stream, base)?),
                 Some(TokenKind::LeftBrace) => Expression::Index(Index::parse(stream, base)?),
                 Some(TokenKind::DoublePlus) | Some(TokenKind::DoubleMinus) => {

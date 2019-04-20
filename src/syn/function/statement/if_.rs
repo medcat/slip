@@ -34,7 +34,7 @@ impl Node for If {
         span |= condition.span();
         let base = StatementGroup::parse(stream)?;
         span |= base.span();
-        let mut conditionals = vec![IfCondition(Some(condition), base, span.clone())];
+        let mut conditionals = vec![IfCondition(Some(condition), base, span)];
         while stream.peek_any(&[TokenKind::Elsif, TokenKind::Else]) {
             let cond = IfCondition::parse(stream)?;
             span |= cond.span();

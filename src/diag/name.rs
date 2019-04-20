@@ -36,12 +36,16 @@ macro_rules! diag_variant {
 }
 
 diag_variant! {
-    pub enum Diagnostic {
+    pub enum Name {
         TestDebug = ("test-debug", Level::Debug),
         TestInfo = ("test-info", Level::Info),
         TestWarning = ("test-warning", Level::Warning),
         TestError = ("test-error", Level::Error),
         TestPanic = ("test-panic", Level::Panic),
+
+        Note = ("note", Level::Info),
+
+        UnexpectedToken = ("unexpected-token", Level::Panic),
 
         LiteralError = ("literal-error", Level::Error),
         UndefinedLocal = ("undefined-local", Level::Error),
@@ -52,7 +56,8 @@ diag_variant! {
         TypeReference = ("type-reference", Level::Info),
         NonConstExpr = ("non-const-expr", Level::Error),
 
-        Generics = ("generics", Level::Error)
+        Generics = ("generics", Level::Error),
+        FuncRedefinition = ("func-redefinition", Level::Error)
 
 
     }

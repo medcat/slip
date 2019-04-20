@@ -1,10 +1,10 @@
-use super::{Diagnostic, Level};
+use super::{Name, Level};
 use std::collections::HashMap;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub(super) struct Overrides {
-    overrides: Vec<HashMap<Diagnostic, Level>>,
-    cache: HashMap<Diagnostic, Level>,
+    overrides: Vec<HashMap<Name, Level>>,
+    cache: HashMap<Name, Level>,
 }
 
 impl Overrides {
@@ -33,11 +33,11 @@ impl Overrides {
         }
     }
 
-    pub fn insert(&mut self, diag: Diagnostic, level: Level) {
+    pub fn insert(&mut self, diag: Name, level: Level) {
         self.overrides.last_mut().unwrap().insert(diag, level);
     }
 
-    pub fn lookup(&self, diag: &Diagnostic) -> Level {
+    pub fn lookup(&self, diag: Name) -> Level {
         *self.cache.get(&diag).unwrap_or(&diag.level())
     }
 

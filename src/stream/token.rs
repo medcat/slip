@@ -3,8 +3,9 @@ use lazy_static::lazy_static;
 use regex::{Regex, RegexSet, RegexSetBuilder};
 use serde_derive::*;
 use std::borrow::Cow;
+use std::hash::{Hash, Hasher};
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 /// A token
 pub struct Token {
     pub(crate) kind: TokenKind,
@@ -100,9 +101,7 @@ impl Token {
 
     /// Converts this token into an "unvalued" token.  Essentially, the
     /// value of the token is dropped, leaving no reference and no
-    /// value.  This is an alternative to [`into_owned`] in cases
-    /// where the value is not needed.  This allows us to change the
-    /// lifetime of the token to be `'static`.
+    /// value.
     ///
     /// # Example
     /// ```rust
@@ -124,6 +123,21 @@ impl Token {
 
     pub fn take_value(&mut self) -> Option<String> {
         self.value.take()
+    }
+}
+
+impl PartialEq for Token {
+    fn eq(&self, other: &Self) -> bool {
+        self.kind == other.kind && self.value == other.value
+    }
+}
+
+impl Eq for Token {}
+
+impl Hash for Token {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.kind.hash(state);
+        self.value.hash(state);
     }
 }
 
@@ -247,32 +261,32 @@ define_tokens! {
         LessThanEqual(Some(false), r"\A<=", r#""<=""#),
         LogicalAnd(Some(false), r"\A&&", r#""&&""#),
         NotEqual(Some(false), r"\A!=", r#""!=""#),
-        LogicalOr(Some(false), r"\A||", r#""||""#),
+        LogicalOr(Some(false), r"\A\|\|", r#""||""#),
         RightShift(Some(false), r"\A>>", r#"">>""#),
         GreaterThanEqual(Some(false), r"\A>=", r#"">=""#),
         Rocket(Some(false), r"\A=>", r#""=>""#),
         BitwiseAnd(Some(false), r"\A&", r#""&""#),
         BitwiseNot(Some(false), r"\A~", r#""~""#),
-        BitwiseOr(Some(false), r"\A|", r#""|""#),
-        BitwiseXor(Some(false), r"\A^", r#""^""#),
+        BitwiseOr(Some(false), r"\A\|", r#""|""#),
+        BitwiseXor(Some(false), r"\A\^", r#""^""#),
         Colon(Some(false), r"\A:", r#"":""#),
         Comma(Some(false), r"\A,", r#"",""#),
         Divide(Some(false), r"\A/", r#""/""#),
         Equals(Some(false), r"\A=", r#""=""#),
         LessThan(Some(false), r"\A<", r#""<""#),
-        LeftBrace(Some(false), r"\A{", r#""{""#),
-        LeftBracket(Some(false), r"\A[", r#""[""#),
+        LeftBrace(Some(false), r"\A\{", r#""{""#),
+        LeftBracket(Some(false), r"\A\[", r#""[""#),
         LogicalNot(Some(false), r"\A!", r#""!""#),
-        LeftParen(Some(false), r"\A(", r#""(""#),
+        LeftParen(Some(false), r"\A\(", r#""(""#),
         Minus(Some(false), r"\A-", r#""-""#),
         Modulo(Some(false), r"\A%", r#""%""#),
-        Star(Some(false), r"\A*", r#""*""#),
-        Period(Some(false), r"\A.", r#"".""#),
-        Plus(Some(false), r"\A+", r#""+""#),
+        Star(Some(false), r"\A\*", r#""*""#),
+        Period(Some(false), r"\A\.", r#"".""#),
+        Plus(Some(false), r"\A\+", r#""+""#),
         GreaterThan(Some(false), r"\A>", r#"">""#),
-        RightBrace(Some(false), r"\A}", r#""}""#),
-        RightBracket(Some(false), r"\A]", r#""]""#),
-        RightParen(Some(false), r"\A)", r#"")""#),
+        RightBrace(Some(false), r"\A\}", r#""}""#),
+        RightBracket(Some(false), r"\A\]", r#""]""#),
+        RightParen(Some(false), r"\A\)", r#"")""#),
         Semicolon(Some(false), r"\A;", r#"";""#),
         Underscore(Some(false), r"\A_", r#""_""#),
         Identifier(Some(true), r"\A(?:[a-z][a-zA-Z\d_-]*[!?]?|@[-+]{2}|[-+]{1,2}@)", "Identifier"),
@@ -284,6 +298,6 @@ define_tokens! {
         SingleString(Some(true), r"\A'[^']*'", "SingleString"),
         Escape(Some(true), r"\A\\[a-z][a-zA-Z\d_-]*[!?]?", "Escape"),
         Whitespace(None as Option<bool>, r"\A\s+", "Whitespace"),
-        Eof(Some(false), r"\A", "Eof")
+        Eof(Some(false), r"\A\z", "Eof")
     }
 }

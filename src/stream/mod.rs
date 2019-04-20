@@ -28,13 +28,24 @@ use crate::error::Error;
 ///     TokenKind::Semicolon]);
 /// # }
 /// ```
-pub struct TokenStream<'a>(&'a str, usize, Position, Option<Result<Token, Error>>);
+pub struct TokenStream<'d> {
+    file: &'d File,
+    offset: usize,
+    position: Position,
+    diag: &'d mut DiagnosticSet,
+    next: Option<Result<Token, Error>>,
+}
 
-impl<'a> TokenStream<'a> {
-    /// Creates a new lexer from the given source.  The TokenStream's
-    /// lifetime, and the resulting tokens, are tied to this source.
-    pub fn new(source: &'a str) -> TokenStream<'a> {
-        TokenStream(source, 0, Position::default(), None)
+impl<'d> TokenStream<'d> {
+    /// Creates a new lexer from the given source.
+    pub fn new(file: &'d File, diag: &'d mut DiagnosticSet) -> TokenStream<'d> {
+        TokenStream {
+            file,
+            offset: 0,
+            position: Position::default(),
+            diag,
+            next: None,
+        }
     }
 
     /// Retrieves the span of where the lexer is.  By the nature of
@@ -52,7 +63,7 @@ impl<'a> TokenStream<'a> {
     /// # }
     /// ```
     pub fn span(&self) -> Span {
-        Span::new(self.2, self.2)
+        Span::new(self.position, self.position, Some(self.file.id()))
     }
 
     /// Peeks into the next token.  This is useful for doing a
@@ -60,12 +71,12 @@ impl<'a> TokenStream<'a> {
     /// the same semantics as [`std::iter::Peekable::peek`], except
     /// you don't have to call [`std::iter::Iterator::peekable`].
     pub fn peek(&mut self) -> Option<&Result<Token, Error>> {
-        if self.3.is_none() {
+        if self.next.is_none() {
             let result = self.next();
-            self.3 = result;
+            self.next = result;
         }
 
-        self.3.as_ref()
+        self.next.as_ref()
     }
 
     /// Expects any of the given tokens; if the next token one isn't
@@ -79,17 +90,18 @@ impl<'a> TokenStream<'a> {
                 if kinds.contains(&token.kind) {
                     Ok(token)
                 } else {
-                    error(token.kind, kinds, token.span)
+                    error(self.diag, token.kind, kinds, token.span)
+                        .map(|t| t)
                 }
             }
             Some(Err(e)) => Err(e),
-            None => error(TokenKind::Eof, kinds, self.span()),
+            None => error(self.diag, TokenKind::Eof, kinds, self.span()).map(|t| t),
         }
     }
 
-    /// This is an optimised version of [`expect_any`].  This takes one
-    /// token kind, and if the next token isn't that token, it errors;
-    /// or, if there are no more tokens, it errors.  Note that this
+    /// This is an optimised version of [`TokenStream::expect_any`].  This
+    /// takes one token kind, and if the next token isn't that token, it
+    /// errors; or, if there are no more tokens, it errors.  Note that this
     /// passes errors through from the iterator.
     pub fn expect_one(&mut self, kind: TokenKind) -> Result<Token, Error> {
         match self.next() {
@@ -97,11 +109,12 @@ impl<'a> TokenStream<'a> {
                 if token.kind == kind {
                     Ok(token)
                 } else {
-                    error(token.kind, &[kind], token.span)
+                    error(self.diag, token.kind, &[kind], token.span)
+                        .map(|t| t)
                 }
             }
             Some(Err(e)) => Err(e),
-            None => error(TokenKind::Eof, &[kind], self.span()),
+            None => error(self.diag, TokenKind::Eof, &[kind], self.span()).map(|t| t),
         }
     }
 
@@ -123,8 +136,8 @@ impl<'a> TokenStream<'a> {
         }
     }
 
-    /// This is an optimised version of [`peek_any`].  This takes one
-    /// token kind, and checks if the next token is that kind; if it is,
+    /// This is an optimised version of [`TokenStream::peek_any`].  This takes
+    /// one token kind, and checks if the next token is that kind; if it is,
     /// it return true.  If there is no more tokens, or the next value
     /// is an error, or te next token isn't of the given kind, it
     /// returns false.
@@ -145,22 +158,15 @@ impl<'a> TokenStream<'a> {
     /// current position as the location (see [`TokenStream::span`]), and the
     /// expected tokens as the expected for the error.
     ///
-    /// # Notes
-    /// The [`Result::Ok`] variant is _never_ created using this funtion.
-    /// Despite that, the Ok variant is declared to be the unit type.
-    /// Don't let that fool you - the never type (`!`) is currently
-    /// unstable, and if it was stable, I would be using that here
-    /// instead.  In the meantime, you can just do something like this:
-    ///
     /// ```
-    /// lexer.error_from(&[TokenKind::Module]).map(|_| unreachable!())
+    /// lexer.error_from(&[TokenKind::Module])
     /// ```
-    pub fn error_from(&mut self, expected: &[TokenKind]) -> Result<(), Error> {
+    pub fn error_from(&mut self, expected: &[TokenKind]) -> Result<!, Error> {
         let next = self.next();
         match next {
-            Some(Ok(token)) => error(token.kind, expected, token.span),
+            Some(Ok(token)) => error(self.diag, token.kind, expected, token.span),
             Some(Err(e)) => Err(e),
-            None => error(TokenKind::Eof, expected, self.span()),
+            None => error(self.diag, TokenKind::Eof, expected, self.span()),
         }
     }
 
@@ -175,7 +181,7 @@ impl<'a> TokenStream<'a> {
     where
         F: FnMut(&mut Self) -> Result<T, E>,
     {
-        let terminating = |lex: &mut TokenStream<'a>| match end {
+        let terminating = |lex: &mut TokenStream| match end {
             Some(v) => lex.peek_one(v),
             _ => !lex.peek_one(seperator),
         };
@@ -207,47 +213,44 @@ impl<'a> TokenStream<'a> {
     }
 
     /// Whether or not the lexer is at EOF.  If this is true, the
-    /// iterator is guarenteed to return `None`.  Note that this
+    /// iterator is guarenteed to return [`None`].  Note that this
     /// requires a mutable reference because it _does_ advance the
     /// iterator - if you need to check without advancing the
     /// iterator, first clone, then call this.  Since we skip specific
     /// tokens, we can't know if we're at the EOF without checking what
     /// the next token would be.
     pub fn eof(&mut self) -> bool {
-        match self.peek() {
-            Some(_) => false,
-            None => true,
-        }
+        self.peek().is_none()
     }
 }
 
-impl<'a> Iterator for TokenStream<'a> {
+impl<'d> Iterator for TokenStream<'d> {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.3.is_some() {
-            return self.3.take();
+        if self.next.is_some() {
+            return self.next.take();
         }
 
-        if self.1 >= self.0.len() {
+        if self.offset >= self.file.content().len() {
             return None;
         }
 
-        let point = &self.0[self.1..];
+        let point = &self.file.content()[self.offset..];
 
         match find_next(point) {
             Some((kind, mat)) => {
                 let value = mat.as_str();
                 // let offset = self.1 + value.len();
-                let line = self.2.line() + value.match_indices('\n').count();
+                let line = self.position.line() + value.match_indices('\n').count();
                 let column = value
                     .rfind('\n')
                     .map(|v| value.len() - v)
-                    .unwrap_or(self.2.column() + value.len());
+                    .unwrap_or(self.position.column() + value.len());
                 let position = Position::new(line, column);
-                let span = Span::new(self.2, position);
-                self.1 += value.len();
-                self.2 = position;
+                let span = Span::new(self.position, position, Some(self.file.id()));
+                self.offset += value.len();
+                self.position = position;
                 let token = Token::new(kind, span, Some(value));
 
                 if kind.ignore() {
@@ -257,12 +260,12 @@ impl<'a> Iterator for TokenStream<'a> {
                 }
             }
             None => {
-                self.1 = self.0.len();
+                self.offset = self.file.content().len();
                 let c = point.chars().next().unwrap_or('\u{fffd}');
                 Some(Err(Error::UnexpectedSymbolError {
                     symbol: c,
-                    line: self.2.line(),
-                    column: self.2.column(),
+                    line: self.position.line(),
+                    column: self.position.column(),
                 }))
             }
         }
@@ -284,7 +287,8 @@ fn find_next(source: &str) -> Option<(TokenKind, ::regex::Match)> {
         .map(|(k, _, m)| (k, m))
 }
 
-fn error<R>(current: TokenKind, expected: &[TokenKind], span: Span) -> Result<R, Error> {
+fn error(diag: &mut DiagnosticSet, current: TokenKind, expected: &[TokenKind], span: Span) -> Result<!, Error> {
+    diag.emit(Diagnostic::UnexpectedToken, span, format!("found token {}, expected one of {:?}", current, expected))?;
     Err(Error::UnexpectedTokenError {
         current,
         expected: expected.to_owned(),

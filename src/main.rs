@@ -1,5 +1,6 @@
 #![feature(never_type)]
 #![feature(test)]
+#![feature(map_get_key_value)]
 #![warn(clippy::all)]
 #![allow(dead_code)]
 

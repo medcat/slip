@@ -1,4 +1,4 @@
-use super::{Name, Level};
+use super::{Level, Name};
 use std::collections::HashMap;
 
 #[derive(Debug, Clone, Default)]

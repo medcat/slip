@@ -1,5 +1,4 @@
-use crate::diag::Span;
-use crate::syn::{BasicNode, Item, Module, Root, Type, Use};
+use crate::syn::{Item, Module, Root, Type, Use};
 
 /// Information about the current position in the type structure of the
 /// associated item.  This includes the current path to the item (i.e. module
@@ -9,7 +8,7 @@ use crate::syn::{BasicNode, Item, Module, Root, Type, Use};
 ///
 /// This borrows from the syntax tree with lifetime `'s`.
 pub struct TypeState<'s> {
-    base: Type,
+    base: Vec<&'s Type>,
     uses: Vec<&'s Use>,
 }
 
@@ -37,7 +36,7 @@ impl<'s> TypeState<'s> {
     /// name that it touched; for example, if the outer module is `A::B`, and
     /// the inner one is `C::D`, then the span of this type is of the span of
     /// `C::D`, in order to prevent wildly odd spans from occurring.
-    pub fn base(&self) -> &Type {
+    pub fn base(&self) -> &[&'s Type] {
         &self.base
     }
 
@@ -68,12 +67,13 @@ impl<'s> Stack<'s> {
     }
 
     fn collapse(&self) -> TypeState<'s> {
-        let mut base = Type::join_all(self.typ_.iter().cloned());
-        *base.span_mut() = self
-            .typ_
-            .last()
-            .map(|s| s.span())
-            .unwrap_or_else(Span::identity);
+        // let mut base = Type::join_all(self.typ_.iter().cloned());
+        // *base.span_mut() = self
+        //     .typ_
+        //     .last()
+        //     .map(|s| s.span())
+        //     .unwrap_or_else(Span::identity);
+        let base = self.typ_.clone();
         let uses = self.use_.iter().flatten().cloned().collect::<Vec<_>>();
         TypeState { base, uses }
     }

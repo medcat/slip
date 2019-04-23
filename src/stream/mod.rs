@@ -2,6 +2,8 @@
 mod test;
 mod token;
 
+use std::sync::Arc;
+
 pub use self::token::{Token, TokenKind};
 use super::diag::*;
 use crate::error::Error;
@@ -28,19 +30,19 @@ use crate::error::Error;
 ///     TokenKind::Semicolon]);
 /// # }
 /// ```
-pub struct TokenStream<'d> {
-    file: &'d File,
+pub struct TokenStream {
+    source: SourceId,
     offset: usize,
     position: Position,
-    diag: &'d mut DiagnosticSet,
+    diag: Arc<Diagnostics>,
     next: Option<Result<Token, Error>>,
 }
 
-impl<'d> TokenStream<'d> {
+impl TokenStream {
     /// Creates a new lexer from the given source.
-    pub fn new(file: &'d File, diag: &'d mut DiagnosticSet) -> TokenStream<'d> {
+    pub fn new(source: SourceId, diag: Arc<Diagnostics>) -> TokenStream {
         TokenStream {
-            file,
+            source,
             offset: 0,
             position: Position::default(),
             diag,
@@ -63,7 +65,7 @@ impl<'d> TokenStream<'d> {
     /// # }
     /// ```
     pub fn span(&self) -> Span {
-        Span::new(self.position, self.position, Some(self.file.id()))
+        Span::new(self.position, self.position, Some(self.source))
     }
 
     /// Peeks into the next token.  This is useful for doing a
@@ -90,12 +92,11 @@ impl<'d> TokenStream<'d> {
                 if kinds.contains(&token.kind) {
                     Ok(token)
                 } else {
-                    error(self.diag, token.kind, kinds, token.span)
-                        .map(|t| t)
+                    error(&self.diag, token.kind, kinds, token.span).map(|t| t)
                 }
             }
             Some(Err(e)) => Err(e),
-            None => error(self.diag, TokenKind::Eof, kinds, self.span()).map(|t| t),
+            None => error(&self.diag, TokenKind::Eof, kinds, self.span()).map(|t| t),
         }
     }
 
@@ -109,12 +110,11 @@ impl<'d> TokenStream<'d> {
                 if token.kind == kind {
                     Ok(token)
                 } else {
-                    error(self.diag, token.kind, &[kind], token.span)
-                        .map(|t| t)
+                    error(&self.diag, token.kind, &[kind], token.span).map(|t| t)
                 }
             }
             Some(Err(e)) => Err(e),
-            None => error(self.diag, TokenKind::Eof, &[kind], self.span()).map(|t| t),
+            None => error(&self.diag, TokenKind::Eof, &[kind], self.span()).map(|t| t),
         }
     }
 
@@ -164,9 +164,9 @@ impl<'d> TokenStream<'d> {
     pub fn error_from(&mut self, expected: &[TokenKind]) -> Result<!, Error> {
         let next = self.next();
         match next {
-            Some(Ok(token)) => error(self.diag, token.kind, expected, token.span),
+            Some(Ok(token)) => error(&self.diag, token.kind, expected, token.span),
             Some(Err(e)) => Err(e),
-            None => error(self.diag, TokenKind::Eof, expected, self.span()),
+            None => error(&self.diag, TokenKind::Eof, expected, self.span()),
         }
     }
 
@@ -224,7 +224,7 @@ impl<'d> TokenStream<'d> {
     }
 }
 
-impl<'d> Iterator for TokenStream<'d> {
+impl Iterator for TokenStream {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -232,11 +232,14 @@ impl<'d> Iterator for TokenStream<'d> {
             return self.next.take();
         }
 
-        if self.offset >= self.file.content().len() {
+        let source = self.diag.source(self.source);
+        let file_content = source.as_ref().map(|s| s.content()).unwrap_or("");
+
+        if self.offset >= file_content.len() {
             return None;
         }
 
-        let point = &self.file.content()[self.offset..];
+        let point = &file_content[self.offset..];
 
         match find_next(point) {
             Some((kind, mat)) => {
@@ -248,7 +251,7 @@ impl<'d> Iterator for TokenStream<'d> {
                     .map(|v| value.len() - v)
                     .unwrap_or(self.position.column() + value.len());
                 let position = Position::new(line, column);
-                let span = Span::new(self.position, position, Some(self.file.id()));
+                let span = Span::new(self.position, position, Some(self.source));
                 self.offset += value.len();
                 self.position = position;
                 let token = Token::new(kind, span, Some(value));
@@ -260,7 +263,7 @@ impl<'d> Iterator for TokenStream<'d> {
                 }
             }
             None => {
-                self.offset = self.file.content().len();
+                self.offset = file_content.len();
                 let c = point.chars().next().unwrap_or('\u{fffd}');
                 Some(Err(Error::UnexpectedSymbolError {
                     symbol: c,
@@ -287,8 +290,17 @@ fn find_next(source: &str) -> Option<(TokenKind, ::regex::Match)> {
         .map(|(k, _, m)| (k, m))
 }
 
-fn error(diag: &mut DiagnosticSet, current: TokenKind, expected: &[TokenKind], span: Span) -> Result<!, Error> {
-    diag.emit(Diagnostic::UnexpectedToken, span, format!("found token {}, expected one of {:?}", current, expected))?;
+fn error(
+    diag: &Diagnostics,
+    current: TokenKind,
+    expected: &[TokenKind],
+    span: Span,
+) -> Result<!, Error> {
+    diag.emit(
+        Name::UnexpectedToken,
+        span,
+        format!("found token {}, expected one of {:?}", current, expected),
+    );
     Err(Error::UnexpectedTokenError {
         current,
         expected: expected.to_owned(),

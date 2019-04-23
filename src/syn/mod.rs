@@ -34,9 +34,9 @@ pub trait Node: BasicNode {
 }
 
 pub fn of(source: String) -> Result<Root, Error> {
-    let mut set = crate::diag::DiagnosticSet::new();
-    let file = set.create("(implicit)".to_owned(), source);
-    let mut token_stream = crate::stream::TokenStream::new(file, &mut set);
+    let set = Arc::new(crate::diag::Diagnostics::new());
+    let file = set.add_source("(implicit)".to_owned(), source);
+    let mut token_stream = crate::stream::TokenStream::new(file, set);
     Root::parse(&mut token_stream)
 }
 

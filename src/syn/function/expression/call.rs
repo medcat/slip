@@ -24,10 +24,12 @@ impl Call {
         let span = left.span() | arguments.span();
 
         match left {
-            Expression::Access(access) => {
-                Ok(Call::Unified(Box::new(Unified::new(*access.0, access.1, arguments, span))))
-            }
-            Expression::Atom(Atom::Ident(tok)) => Ok(Call::Standard(Box::new(Standard::new(tok, arguments, span)))),
+            Expression::Access(access) => Ok(Call::Unified(Box::new(Unified::new(
+                *access.0, access.1, arguments, span,
+            )))),
+            Expression::Atom(Atom::Ident(tok)) => Ok(Call::Standard(Box::new(Standard::new(
+                tok, arguments, span,
+            )))),
             v => Ok(Call::Expression(Box::new(Expr::new(v, arguments, span)))),
         }
     }
@@ -43,7 +45,6 @@ impl BasicNode for Call {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Unified {
     pub base: Expression,
@@ -54,7 +55,12 @@ pub struct Unified {
 
 impl Unified {
     fn new(base: Expression, func: FunctionName, params: Roll<Expression>, span: Span) -> Unified {
-        Unified { base, func, params, span }
+        Unified {
+            base,
+            func,
+            params,
+            span,
+        }
     }
 }
 
@@ -67,7 +73,11 @@ pub struct Standard {
 
 impl Standard {
     fn new(token: Token, params: Roll<Expression>, span: Span) -> Standard {
-        Standard { token, params, span }
+        Standard {
+            token,
+            params,
+            span,
+        }
     }
 }
 

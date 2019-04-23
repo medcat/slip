@@ -1,12 +1,11 @@
-use super::{Name, Level, Span, Source};
+use super::{Level, Name, Source, Span};
+use std::borrow::Cow;
 use std::io::{Result as IoResult, Write};
 use term::Terminal;
-use either::Either;
-use std::borrow::Cow;
 
 #[derive(Debug, Clone)]
 /// A single emission caused by a diagnostic.  This is the materialization
-/// of a diagnostic.  This can - and should - always be constructed 
+/// of a diagnostic.  This can - and should - always be constructed
 /// regardless of whether or not the emission should be outputted to the
 /// terminal, as we keep track of them.
 pub(super) struct Emission {
@@ -40,12 +39,12 @@ impl Emission {
     }
 
     /// This emits out to a terminal, with the given file, if it exists.  This
-    /// provides the feedback to the user, if requested.  This should not 
+    /// provides the feedback to the user, if requested.  This should not
     /// error unless there is an underlying issue with the IO object.
-    pub fn emit<T, W>(&self, source: Option<&Source>, out: Either<&mut T, &mut W>) -> IoResult<()>
+    pub(super) fn emit<T, TO>(&self, source: Option<&Source>, mut out: &mut T) -> IoResult<()>
     where
-        T: Terminal + ?Sized,
-        W: Write + ?Sized,
+        TO: Write,
+        T: Terminal<Output = TO> + Send + ?Sized,
     {
         use term::color;
 
@@ -71,32 +70,33 @@ impl Emission {
             // extra, for context.
             .take(end_line - start_line + 8);
 
-        if_term(&out, |term| term.fg(color::BRIGHT_BLUE).unwrap());
+        out.fg(color::BRIGHT_BLUE).unwrap();
 
         // Write the first line.  It'll write up to the count number of spaces,
         // giving enough room to make it line up later.
-        writeln!(out, "{:1$}> ", "", count + 1)?;
+        writeln!(&mut out, "{:1$}> ", "", count + 1)?;
 
+        out.reset().unwrap();
 
-        if let Either::Left(term) = out {
-            term.reset().unwrap();
-        }
         for (num, line) in lines {
             let lino = num + 1;
-            if_term(&out, |term| term.fg(color::BRIGHT_BLUE).unwrap());
+
+            out.fg(color::BRIGHT_BLUE).unwrap();
+
             if lino >= start_line && lino <= end_line {
                 // we're definitely in between the start and end here.  So we
                 // actually want to output the line numbers.
-                write!(out, "{:1$} | ", lino, count + 1)?;
+                write!(&mut out, "{:1$} | ", lino, count + 1)?;
             } else {
                 // If we're not in range, just output empty space.
-                write!(out, "{:1$}| ", "", count + 1)?;
+                write!(&mut out, "{:1$}| ", "", count + 1)?;
             }
 
-            if_term(&out, |term| term.reset().unwrap());
+            out.reset().unwrap();
+
             // Now, actually write the line from the file.  No colouring or
             // anything.  We don't need it.
-            writeln!(out, "{}", line)?;
+            writeln!(&mut out, "{}", line)?;
         }
         let scolumn = self.span.start().column();
         let ecolumn = self.span.end().column();
@@ -106,10 +106,10 @@ impl Emission {
             ecolumn - scolumn
         };
 
-        if_term(&out, |term| term.fg(color::BRIGHT_YELLOW).unwrap());
+        out.fg(color::BRIGHT_YELLOW).unwrap();
         // Mark out the columns.  Yay!
         writeln!(
-            out,
+            &mut out,
             "{:lineoff$}>{:scol$}{:^<repeat$}",
             "",
             "",
@@ -126,16 +126,13 @@ impl Emission {
             _ => color::CYAN,
         };
 
-        if_term(&out, |term| term.fg(color).unwrap());
-        writeln!(out, "{}: {}", self.level, self.message)?;
-        if_term(&out, |term| term.reset().unwrap());
-        if_term(&out, |term| term.flush().unwrap());
+        out.fg(color).unwrap();
+
+        writeln!(&mut out, "{}: {}", self.level, self.message)?;
+
+        out.reset().unwrap();
+        out.flush().unwrap();
 
         Ok(())
     }
-}
-
-fn if_term<T, W, F, R>(either: &Either<&mut T, &mut W>, f: F) -> Option<R>
-where T: Terminal + ?Sized, W: Write + ?Sized, F: FnOnce(&mut T) -> R {
-    either.left().map(f)
 }

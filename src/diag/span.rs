@@ -13,7 +13,7 @@ pub struct Span(Position, Position, Option<SourceId>);
 pub struct SourceSpan<'s>(Span, Option<&'s str>);
 
 impl Span {
-    pub fn new(start: Position, end: Position, source: Option<Source>) -> Span {
+    pub fn new(start: Position, end: Position, source: Option<SourceId>) -> Span {
         Span(start, end, source)
     }
 
@@ -32,7 +32,7 @@ impl Span {
         self.1
     }
 
-    pub fn source(&self) -> Option<Source> {
+    pub fn source(&self) -> Option<SourceId> {
         self.2
     }
 

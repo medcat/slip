@@ -57,6 +57,7 @@ diag_variant! {
         NonConstExpr = ("non-const-expr", Level::Error),
 
         Generics = ("generics", Level::Error),
+        TypeRedefinition = ("type-redefinition", Level::Error),
         FuncRedefinition = ("func-redefinition", Level::Error)
 
 

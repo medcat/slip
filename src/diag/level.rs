@@ -2,6 +2,7 @@ use std::fmt;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Level {
+    Never,
     All,
     Debug,
     Info,
@@ -20,6 +21,7 @@ impl Default for Level {
 impl fmt::Display for Level {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Level::Never => write!(f, "never"),
             Level::All => write!(f, "all"),
             Level::Debug => write!(f, "debug"),
             Level::Info => write!(f, "info"),

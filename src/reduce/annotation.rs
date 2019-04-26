@@ -1,12 +1,11 @@
-use std::hash::{Hash, Hasher};
 use std::fmt;
-use std::borrow::Borrow;
+use std::hash::{Hash, Hasher};
 
 use crate::diag::Span;
 
 use super::TypeState;
-use crate::syn::{BasicNode, Item, Type};
 use crate::syn::function::FunctionName;
+use crate::syn::{BasicNode, Item, Type};
 
 /// An annotated item - an item, along with the path to the item (type path)
 /// and the type imports.  This is easier to keep track of than having these
@@ -25,20 +24,24 @@ impl<'s> Annotation<'s> {
     pub(super) fn is_type(&self) -> bool {
         match self.item {
             Item::Enum(_) | Item::Struct(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
     pub(super) fn is_func(&self) -> bool {
         match self.item {
             Item::Function(_) => true,
-            _ => false
+            _ => false,
         }
     }
 
-    pub(super) fn item(&self) -> &'s Item { self.item }
+    pub(super) fn item(&self) -> &'s Item {
+        self.item
+    }
 
-    pub(super) fn tstate(&self) -> &TypeState<'s> { &self.tstate }
+    pub(super) fn tstate(&self) -> &TypeState<'s> {
+        &self.tstate
+    }
 }
 
 impl<'s> From<(TypeState<'s>, &'s Item)> for Annotation<'s> {
@@ -109,59 +112,6 @@ impl Hash for AnnotationName<'_> {
 }
 
 impl fmt::Display for AnnotationName<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let joined = Type::join_all(self.type_.iter().cloned());
-        if let Some(fname) = self.fname {
-            write!(f, "{}.{}", joined, fname.value())
-        } else {
-            joined.fmt(f)
-        }
-    }
-}
-
-impl<'s> Borrow<AnnotationNameSlice<'_, 's>> for AnnotationName<'s> {
-    fn borrow(&self) -> &AnnotationNameSlice<'_, 's> {
-        &AnnotationNameSlice {
-            type_: &self.type_[..],
-            fname: self.fname
-        }
-    } 
-}
-
-#[derive(Debug, Copy, Clone)]
-pub(super) struct AnnotationNameSlice<'t, 's> {
-    type_: &'t [&'s Type],
-    fname: Option<&'s FunctionName>,
-}
-
-impl<'t, 's> AnnotationNameSlice<'t, 's> {
-    pub(super) fn new(type_: &'t [&'s Type], fname: Option<&'s FunctionName>) -> AnnotationNameSlice<'t, 's> {
-        AnnotationNameSlice { type_, fname }
-    }
-}
-
-impl PartialEq for AnnotationNameSlice<'_, '_> {
-    fn eq(&self, other: &AnnotationNameSlice<'_, '_>) -> bool {
-        let self_parts = self.type_.iter().flat_map(|t| t.parts().iter());
-        let other_parts = other.type_.iter().flat_map(|t| t.parts().iter());
-
-        self_parts.eq(other_parts) && self.fname == other.fname
-    }
-}
-
-impl Eq for AnnotationNameSlice<'_, '_> {}
-
-impl Hash for AnnotationNameSlice<'_, '_> {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        for part in self.type_.iter().flat_map(|t| t.parts().iter()) {
-            part.hash(state);
-        }
-
-        self.fname.hash(state);
-    }
-}
-
-impl fmt::Display for AnnotationNameSlice<'_, '_> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let joined = Type::join_all(self.type_.iter().cloned());
         if let Some(fname) = self.fname {

@@ -1,14 +1,14 @@
-use super::{BasicNode, Node, Roll};
+use super::{BasicNode, Node, Roll, Type};
 use crate::diag::Span;
 use crate::error::*;
 use crate::stream::{Token, TokenKind, TokenStream};
 use serde_derive::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Use(Vec<Token>, Roll<UseTrail>, Span);
+pub struct Use(Type, Roll<UseTrail>, Span);
 
 impl Use {
-    pub fn prefix(&self) -> &[Token] {
+    pub fn prefix(&self) -> &Type {
         &self.0
     }
     pub fn trails(&self) -> &[UseTrail] {
@@ -67,9 +67,14 @@ impl Node for Use {
             Ok(roll)
         })?;
 
+        let prespan = prefix
+            .iter()
+            .fold(Span::identity(), |acc, el| acc | el.span());
+
+        let kind = Type::new(prefix, None, prespan);
         let tok = stream.expect_one(TokenKind::Semicolon)?.span();
         let content = content.unwrap_or_else(Roll::empty);
-        Ok(Use(prefix, content, span | inspan | tok))
+        Ok(Use(kind, content, span | inspan | tok))
     }
 }
 
@@ -81,27 +86,24 @@ impl BasicNode for Use {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum UseTrail {
-    Static(Vec<Token>, Span),
-    Rename(Vec<Token>, Vec<Token>, Span),
+    Static(Type, Span),
+    Rename(Type, Type, Span),
     Star(Span),
 }
 
 impl UseTrail {
-    pub fn base(&self) -> &[Token] {
+    pub fn base(&self) -> Option<&Type> {
         match self {
-            UseTrail::Static(v, _) => &v[..],
-            UseTrail::Rename(v, _, _) => &v[..],
-            UseTrail::Star(_) => &[],
+            UseTrail::Static(v, _) => Some(&v),
+            UseTrail::Rename(v, _, _) => Some(&v),
+            UseTrail::Star(_) => None,
         }
     }
 
     pub fn name(&self) -> Option<&[Token]> {
         match self {
-            UseTrail::Static(v, _) => {
-                let tail = v.len();
-                Some(&v[(tail - 2)..(tail - 1)])
-            }
-            UseTrail::Rename(_, v, _) => Some(&v[..]),
+            UseTrail::Static(v, _) => Some(&v.parts()[(v.parts().len() - 2)..]),
+            UseTrail::Rename(_, v, _) => Some(v.parts()),
             UseTrail::Star(_) => None,
         }
     }
@@ -114,23 +116,10 @@ impl UseTrail {
         }
     }
 
-    pub fn combine(&self, prefix: &[Token], current: &super::Type) -> super::Type {
-        use super::Type;
+    pub fn combine<'s>(&'s self, prefix: &'s Type, current: &'s Type) -> Vec<&'s Type> {
         match self {
-            UseTrail::Static(_, _) | UseTrail::Star(_) => {
-                let mut parts = Vec::with_capacity(prefix.len() + current.parts().len());
-                parts.extend_from_slice(&prefix);
-                parts.extend_from_slice(&current.parts());
-
-                Type::new(parts, current.generics().as_ref().cloned(), current.span())
-            }
-
-            UseTrail::Rename(from, _, _) => {
-                let mut parts = Vec::with_capacity(prefix.len() + from.len());
-                parts.extend_from_slice(&prefix);
-                parts.extend_from_slice(&from);
-                Type::new(parts, current.generics().as_ref().cloned(), current.span())
-            }
+            UseTrail::Static(_, _) | UseTrail::Star(_) => vec![prefix, current],
+            UseTrail::Rename(from, _, _) => vec![prefix, from],
         }
     }
 }
@@ -140,10 +129,12 @@ impl Node for UseTrail {
         match stream.peek_kind() {
             Some(TokenKind::ModuleName) => {
                 let (val, mut span) = prefix_basic(stream)?;
+                let val = Type::new(val, None, span);
 
                 if stream.peek_one(TokenKind::As) {
                     span |= stream.expect_one(TokenKind::As)?.span();
                     let (alias, alspan) = prefix_basic(stream)?;
+                    let alias = Type::new(alias, None, alspan);
                     span |= alspan;
                     Ok(UseTrail::Rename(val, alias, span))
                 } else {

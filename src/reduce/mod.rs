@@ -23,14 +23,15 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 mod annotation;
+mod resolve;
 mod type_;
 
-use self::annotation::{Annotation, AnnotationName, AnnotationNameSlice};
+use self::annotation::{Annotation, AnnotationName};
 pub use self::type_::TypeState;
 use crate::diag::{Diagnostics, Name as DiagnosticName};
 
 use crate::error::Error;
-use crate::syn::{BasicNode, Root, Item, Type};
+use crate::syn::{BasicNode, Item, Root, Type};
 
 pub struct Reduce<'s> {
     set: Arc<Diagnostics>,
@@ -90,8 +91,16 @@ impl<'s> Reduce<'s> {
             .find(|(key, value)| {
                 let func_defined = self.funcs.contains_key(key.as_ref());
                 let type_defined = self.types.contains_key(key.as_ref());
-                let is_func = value.first().map(AsRef::as_ref).map(Annotation::is_func).unwrap_or(false);
-                let is_type = value.first().map(AsRef::as_ref).map(Annotation::is_type).unwrap_or(false);
+                let is_func = value
+                    .first()
+                    .map(AsRef::as_ref)
+                    .map(Annotation::is_func)
+                    .unwrap_or(false);
+                let is_type = value
+                    .first()
+                    .map(AsRef::as_ref)
+                    .map(Annotation::is_type)
+                    .unwrap_or(false);
 
                 !func_defined && !type_defined && (is_func || is_type)
             })
@@ -103,34 +112,19 @@ impl<'s> Reduce<'s> {
 fn process_type<'s>(reduce: &mut Reduce<'s>, annotation: Arc<Annotation<'s>>) -> Result<(), Error> {
     match annotation.item() {
         Item::Struct(struct_) => {
-            let items = struct_.elements().iter().map(|item| {
-                resolve(reduce, annotation.tstate(), item.kind())
-            });
+            let items = struct_
+                .elements()
+                .iter()
+                .map(|item| resolve::kind(reduce, annotation.tstate(), item.kind()));
         }
 
-        _ => unreachable!()
+        _ => unreachable!(),
     }
 
     unimplemented!()
 }
 
 fn process_func<'s>(reduce: &mut Reduce<'s>, annotation: Arc<Annotation<'s>>) -> Result<(), Error> {
-    unimplemented!()
-}
-
-fn resolve<'s>(reduce: &mut Reduce<'s>, tstate: &TypeState<'s>, kind: &'s Type) -> Result<(), Error> {
-    let applicable = 
-        tstate.uses()
-            .iter()
-            .flat_map(|use_| use_.trails().iter().map(move |trail| (use_, trail)))
-            .filter(|(_, trail)| trail.applies(kind))
-            .map(|(use_, trail)| {
-                trail.combine(use_.prefix(), kind)
-            })
-            .flat_map(|typ| {
-                let anno = AnnotationNameSlice::new(&[&typ], None);
-                reduce.annotated.get_key_value(&anno)
-            });
     unimplemented!()
 }
 

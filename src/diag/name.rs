@@ -52,6 +52,9 @@ diag_variant! {
 
         AmbiguousType = ("ambiguous-type", Level::Error),
         UnknownType = ("unknown-type", Level::Error),
+        TypeTrace = ("type-trace", Level::Never),
+        PossibleType = ("type-trace.possible", Level::Never),
+        AcceptedType = ("type-trace.accepted", Level::Never),
 
         TypeReference = ("type-reference", Level::Info),
         NonConstExpr = ("non-const-expr", Level::Error),

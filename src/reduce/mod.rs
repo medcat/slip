@@ -19,24 +19,28 @@
 //!    behavior of the overall module.  Ideally such a file should contain a
 //!    "main" function, which allows it to interoperate with the system.
 
+use inkwell::context::Context;
+use inkwell::types::BasicTypeEnum;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 mod annotation;
+mod process;
 mod resolve;
 mod type_;
 
 use self::annotation::{Annotation, AnnotationName};
 pub use self::type_::TypeState;
-use crate::diag::{Diagnostics, Name as DiagnosticName};
+use crate::diag::Diagnostics;
 
 use crate::error::Error;
-use crate::syn::{BasicNode, Item, Root, Type};
+use crate::syn::{Item, Root, Type};
 
 pub struct Reduce<'s> {
     set: Arc<Diagnostics>,
+    context: Context,
     annotated: HashMap<Arc<AnnotationName<'s>>, Vec<Arc<Annotation<'s>>>>,
-    types: HashMap<Arc<AnnotationName<'s>>, ()>,
+    types: HashMap<Arc<AnnotationName<'s>>, BasicTypeEnum>,
     funcs: HashMap<Arc<AnnotationName<'s>>, ()>,
 }
 
@@ -44,6 +48,7 @@ impl<'s> Reduce<'s> {
     pub fn new(set: Arc<Diagnostics>) -> Reduce<'s> {
         Reduce {
             set,
+            context: Context::create(),
             annotated: HashMap::new(),
             types: HashMap::new(),
             funcs: HashMap::new(),
@@ -62,7 +67,7 @@ impl<'s> Reduce<'s> {
     }
 
     pub fn reduce(&mut self) -> Result<(), Error> {
-        verify_singluar_items(self);
+        process::verify_singluar_items(self);
         while let Some(name) = self.pluck() {
             self.process(name)?;
         }
@@ -77,9 +82,9 @@ impl<'s> Reduce<'s> {
             .unwrap()
             .clone();
         if annotation.is_type() {
-            process_type(self, annotation)?;
+            process::kind(self, annotation)?;
         } else if annotation.is_func() {
-            process_func(self, annotation)?;
+            process::func(self, annotation)?;
         }
 
         Ok(())
@@ -106,47 +111,5 @@ impl<'s> Reduce<'s> {
             })
             .map(|s| s.0)
             .cloned()
-    }
-}
-
-fn process_type<'s>(reduce: &mut Reduce<'s>, annotation: Arc<Annotation<'s>>) -> Result<(), Error> {
-    match annotation.item() {
-        Item::Struct(struct_) => {
-            let items = struct_
-                .elements()
-                .iter()
-                .map(|item| resolve::kind(reduce, annotation.tstate(), item.kind()));
-        }
-
-        _ => unreachable!(),
-    }
-
-    unimplemented!()
-}
-
-fn process_func<'s>(reduce: &mut Reduce<'s>, annotation: Arc<Annotation<'s>>) -> Result<(), Error> {
-    unimplemented!()
-}
-
-fn verify_singluar_items(reduce: &Reduce<'_>) {
-    for (name, items) in reduce.annotated.iter().filter(|(_, i)| i.len() > 1) {
-        let diagname = if name.fname().is_some() {
-            DiagnosticName::FuncRedefinition
-        } else {
-            DiagnosticName::TypeRedefinition
-        };
-        reduce.set.emit(
-            diagname,
-            items.last().unwrap().span(),
-            format!("item {} already defined", name),
-        );
-        for prev in items.iter().take(items.len() - 1) {
-            reduce.set.emit_if(
-                diagname,
-                DiagnosticName::Note,
-                prev.span(),
-                "note: previous definition here",
-            );
-        }
     }
 }

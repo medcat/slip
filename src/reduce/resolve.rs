@@ -30,37 +30,35 @@
 //! developer - or, if we come down with no possible type, we can throw an
 //! error.
 
+use inkwell::types::BasicTypeEnum;
 use std::sync::Arc;
 
 use super::AnnotationName;
 use super::Reduce;
 use super::TypeState;
-use crate::diag::{Diagnostics, Name};
-use crate::error::Error;
+use crate::diag::{Diagnostics, Name, Span};
 use crate::syn::{BasicNode, Type};
 
 pub(super) fn kind<'s>(
     reduce: &mut Reduce<'s>,
     tstate: &TypeState<'s>,
     kind: &'s Type,
-) -> Result<(), Error> {
-    let applicable: Vec<&Arc<AnnotationName<'s>>> = tstate
-        .base()
-        .iter()
-        .map(|typ| vec![*typ, kind])
-        .chain(generate_possible_references(tstate, kind))
-        .flat_map(|typ| {
+) -> Option<BasicTypeEnum> {
+    let applicable = generate_possible_references(tstate, kind)
+        .flat_map(|(span, typ)| {
             let anno = AnnotationName::new(typ, None);
-            reduce.annotated.get_key_value(&anno).map(|(k, _)| k)
+            reduce.types.get_key_value(&anno).map(|(k, v)| (span, k, v))
         })
         .collect::<Vec<_>>();
 
-    match applicable.len() {
-        0 => missing_type_error(&reduce.set, tstate, kind),
-        1 => applicable[0],
-        _ => ambiguous_type_error(&reduce.set, tstate, kind),
-        _ => unimplemented!(),
+    if applicable.is_empty() {
+        missing_type_error(&reduce.set, tstate, kind);
+        return None;
+    } else if applicable.len() > 1 {
+        ambiguous_type_error(&reduce, &applicable[..], kind);
     }
+
+    Some(*applicable[0].2)
 }
 
 fn missing_type_error(set: &Diagnostics, tstate: &TypeState<'_>, kind: &Type) {
@@ -73,26 +71,52 @@ fn missing_type_error(set: &Diagnostics, tstate: &TypeState<'_>, kind: &Type) {
         for refer in generate_possible_references(tstate, kind) {
             set.emit(
                 Name::TypeTrace,
-                refer.last().unwrap().span(),
-                "note: type resolution  attempted against",
+                refer.0,
+                "note: type resolution attempted against",
             )
         }
     }
     unimplemented!()
 }
 
-fn ambiguous_type_error(set: &Diagnostics, tstate: &TypeState<'_>, kind: &Type) {}
+fn ambiguous_type_error(
+    reduce: &Reduce<'_>,
+    applicable: &[(Span, &Arc<AnnotationName<'_>>, &BasicTypeEnum)],
+    kind: &Type,
+) {
+    reduce.set.emit(
+        Name::AmbiguousType,
+        kind.span(),
+        format!("ambiguous type {}", kind),
+    );
+
+    if reduce.set.active(Name::AmbiguousType) {
+        let first = applicable[0].0;
+        reduce
+            .set
+            .emit(Name::AcceptedType, first, "note: accepted type");
+        for given in applicable[1..].iter() {
+            reduce
+                .set
+                .emit(Name::PossibleType, given.0, "note: possible type");
+        }
+    }
+}
 
 fn generate_possible_references<'r, 's: 'r>(
     tstate: &'r TypeState<'s>,
     kind: &'s Type,
-) -> impl Iterator<Item = Vec<&'s Type>> + 'r {
-    tstate.base().iter().map(move |t| vec![*t, kind]).chain(
-        tstate
-            .uses()
-            .iter()
-            .flat_map(|use_| use_.trails().iter().map(move |trail| (use_, trail)))
-            .filter(move |(_, trail)| trail.applies(kind))
-            .map(move |(use_, trail)| trail.combine(use_.prefix(), kind)),
-    )
+) -> impl Iterator<Item = (Span, Vec<&'s Type>)> + 'r {
+    tstate
+        .base()
+        .iter()
+        .map(move |t| (t.span(), vec![*t, kind]))
+        .chain(
+            tstate
+                .uses()
+                .iter()
+                .flat_map(|use_| use_.trails().iter().map(move |trail| (use_, trail)))
+                .filter(move |(_, trail)| trail.applies(kind))
+                .map(move |(use_, trail)| (trail.span(), trail.combine(use_.prefix(), kind))),
+        )
 }

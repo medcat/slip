@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use self::statement::StatementGroup;
 use crate::diag::Span;
 use crate::error::*;
@@ -167,6 +169,14 @@ static FUNCTION_NAME_OPERATORS: &[TokenKind] = &[
 ];
 
 impl FunctionName {
+    pub fn ident_of<'s, T: Into<Cow<'s, str>>>(cow: T) -> FunctionName {
+        FunctionName::Identifier(Token::new(
+            TokenKind::Identifier,
+            Span::default(),
+            Some(cow),
+        ))
+    }
+
     pub fn value(&self) -> &str {
         match self {
             FunctionName::Identifier(tok) => tok.value().unwrap(),

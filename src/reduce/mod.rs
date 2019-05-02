@@ -20,11 +20,14 @@
 //!    "main" function, which allows it to interoperate with the system.
 
 use inkwell::context::Context;
+use inkwell::module::Module;
 use inkwell::types::BasicTypeEnum;
+use inkwell::values::FunctionValue;
 use std::collections::HashMap;
 use std::sync::Arc;
 
 mod annotation;
+mod arecot;
 mod process;
 mod resolve;
 mod type_;
@@ -34,21 +37,25 @@ pub use self::type_::TypeState;
 use crate::diag::Diagnostics;
 
 use crate::error::Error;
-use crate::syn::{Item, Root, Type};
+use crate::syn::{Root, Type};
 
 pub struct Reduce<'s> {
     set: Arc<Diagnostics>,
     context: Context,
+    module: Module,
     annotated: HashMap<Arc<AnnotationName<'s>>, Vec<Arc<Annotation<'s>>>>,
     types: HashMap<Arc<AnnotationName<'s>>, BasicTypeEnum>,
-    funcs: HashMap<Arc<AnnotationName<'s>>, ()>,
+    funcs: HashMap<Arc<AnnotationName<'s>>, FunctionValue>,
 }
 
 impl<'s> Reduce<'s> {
     pub fn new(set: Arc<Diagnostics>) -> Reduce<'s> {
+        let context = Context::create();
+        let module = context.create_module("mod");
         Reduce {
             set,
-            context: Context::create(),
+            context,
+            module,
             annotated: HashMap::new(),
             types: HashMap::new(),
             funcs: HashMap::new(),

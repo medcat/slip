@@ -3,7 +3,9 @@ use std::borrow::Cow;
 
 #[test]
 fn it_lexes() {
-    let lexer = TokenStream::new("return 3.default();");
+    let diag = Arc::new(crate::diag::Diagnostics::new());
+    let source = diag.add_source("(text)", "return 3.default();");
+    let lexer = TokenStream::new(source, diag);
     let result = lexer
         .map(|r| r.map(|v| (v.kind, Cow::Owned(v.value.unwrap()))).unwrap())
         .collect::<Vec<_>>();

@@ -18,7 +18,7 @@ impl Span {
     }
 
     pub fn of_length(size: usize) -> Span {
-        Span(Position::default(), Position::new(1, size + 1), None)
+        Span(Position::default(), Position::new(0, 1, size + 1), None)
     }
 
     pub fn identity() -> Span {
@@ -164,27 +164,27 @@ impl<'s> fmt::Display for SourceSpan<'s> {
 /// A position within the source.  This contains the offset within the
 /// source, as well as line and column information.
 pub struct Position {
-    // offset: usize,
+    offset: usize,
     line: usize,
     column: usize,
 }
 
 impl Position {
-    pub fn new(line: usize, column: usize) -> Position {
+    pub fn new(offset: usize, line: usize, column: usize) -> Position {
         Position {
-            // offset,
+            offset,
             line,
             column,
         }
     }
 
     pub fn invalid() -> Position {
-        Position::new(0, 0)
+        Position::new(0, 0, 0)
     }
 
-    // pub fn offset(&self) -> usize {
-    //     self.offset
-    // }
+    pub fn offset(&self) -> usize {
+        self.offset
+    }
 
     pub fn line(&self) -> usize {
         self.line
@@ -202,6 +202,11 @@ impl Position {
         if !self.valid() {
             return *other;
         }
+        let offset = if self.offset < other.offset {
+            self.offset
+        } else {
+            other.offset
+        };
         let line = if self.line < other.line {
             self.line
         } else {
@@ -212,13 +217,18 @@ impl Position {
         } else {
             other.column
         };
-        Position::new(line, column)
+        Position::new(offset, line, column)
     }
 
     fn upper_or(&self, other: &Self) -> Position {
         if !self.valid() {
             return *other;
         }
+        let offset = if self.offset > other.offset {
+            self.offset
+        } else {
+            other.offset
+        };
         let line = if self.line > other.line {
             self.line
         } else {
@@ -229,14 +239,14 @@ impl Position {
         } else {
             other.column
         };
-        Position::new(line, column)
+        Position::new(offset, line, column)
     }
 }
 
 impl Default for Position {
     fn default() -> Position {
         Position {
-            // offset: 0,
+            offset: 0,
             line: 1,
             column: 1,
         }

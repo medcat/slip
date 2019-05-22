@@ -1,14 +1,16 @@
+use std::borrow::Cow;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct SourceId(pub(super) usize);
 
 #[derive(Debug, Clone)]
-pub struct Source {
+pub struct Source<'c> {
     pub(super) id: SourceId,
-    pub(super) name: String,
-    pub(super) content: String,
+    pub(super) name: Cow<'c, str>,
+    pub(super) content: Option<Cow<'c, str>>,
 }
 
-impl Source {
+impl<'c> Source<'c> {
     pub fn id(&self) -> SourceId {
         self.id
     }
@@ -17,7 +19,7 @@ impl Source {
         &self.name
     }
 
-    pub fn content(&self) -> &str {
-        &self.content
+    pub fn content(&self) -> Option<&str> {
+        self.content.as_ref().map(AsRef::as_ref)
     }
 }

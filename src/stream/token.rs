@@ -2,7 +2,6 @@ use super::super::diag::*;
 use lazy_static::lazy_static;
 use regex::{Regex, RegexSet, RegexSetBuilder};
 use serde_derive::*;
-use std::borrow::Cow;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -25,14 +24,11 @@ impl Token {
     /// // passed has lifetime 'static.
     /// # }
     /// ```
-    pub fn new<'s, T>(kind: TokenKind, span: Span, value: Option<T>) -> Token
-    where
-        T: Into<Cow<'s, str>>,
-    {
+    pub fn new(kind: TokenKind, span: Span, value: Option<impl Into<String>>) -> Token {
         Token {
             kind,
             span,
-            value: value.map(|v| v.into().into_owned()),
+            value: value.map(Into::into),
         }
     }
 

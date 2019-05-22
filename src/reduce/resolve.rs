@@ -31,12 +31,8 @@
 //! error.
 
 use inkwell::types::BasicTypeEnum;
-use std::sync::Arc;
-
-use super::AnnotationName;
-use super::Reduce;
-use super::TypeState;
-use crate::diag::{Diagnostics, Name, Span};
+use crate::reduce::{Path, Reduce, TypeState};
+use crate::diag::{DiagnosticSync, Name, Span};
 use crate::syn::{BasicNode, Type};
 
 pub(super) fn kind<'s>(
@@ -46,7 +42,7 @@ pub(super) fn kind<'s>(
 ) -> Option<BasicTypeEnum> {
     let applicable = generate_possible_references(tstate, kind)
         .flat_map(|(span, typ)| {
-            let anno = AnnotationName::new(typ, None);
+            let anno = Path::from_syn(typ, None);
             reduce.types.get_key_value(&anno).map(|(k, v)| (span, k, v))
         })
         .collect::<Vec<_>>();
@@ -61,7 +57,7 @@ pub(super) fn kind<'s>(
     Some(*applicable[0].2)
 }
 
-fn missing_type_error(set: &Diagnostics, tstate: &TypeState<'_>, kind: &Type) {
+fn missing_type_error(set: &DiagnosticSync<'_>, tstate: &TypeState<'_>, kind: &Type) {
     set.emit(
         Name::UnknownType,
         kind.span(),
@@ -81,7 +77,7 @@ fn missing_type_error(set: &Diagnostics, tstate: &TypeState<'_>, kind: &Type) {
 
 fn ambiguous_type_error(
     reduce: &Reduce<'_>,
-    applicable: &[(Span, &Arc<AnnotationName<'_>>, &BasicTypeEnum)],
+    applicable: &[(Span, &Path<'_>, &BasicTypeEnum)],
     kind: &Type,
 ) {
     reduce.set.emit(

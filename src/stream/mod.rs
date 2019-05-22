@@ -2,8 +2,6 @@
 mod test;
 mod token;
 
-use std::sync::Arc;
-
 pub use self::token::{Token, TokenKind};
 use super::diag::*;
 use crate::error::Error;
@@ -30,18 +28,20 @@ use crate::error::Error;
 ///     TokenKind::Semicolon]);
 /// # }
 /// ```
-pub struct TokenStream {
+pub struct TokenStream<'c> {
+    content: &'c str,
     source: SourceId,
     offset: usize,
     position: Position,
-    diag: Arc<Diagnostics>,
+    diag: DiagnosticSync<'c>,
     next: Option<Result<Token, Error>>,
 }
 
-impl TokenStream {
+impl<'c> TokenStream<'c> {
     /// Creates a new lexer from the given source.
-    pub fn new(source: SourceId, diag: Arc<Diagnostics>) -> TokenStream {
+    pub fn new(content: &'c str, source: SourceId, diag: DiagnosticSync<'c>) -> TokenStream<'c> {
         TokenStream {
+            content,
             source,
             offset: 0,
             position: Position::default(),
@@ -224,7 +224,7 @@ impl TokenStream {
     }
 }
 
-impl Iterator for TokenStream {
+impl<'c> Iterator for TokenStream<'c> {
     type Item = Result<Token, Error>;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -232,14 +232,11 @@ impl Iterator for TokenStream {
             return self.next.take();
         }
 
-        let source = self.diag.source(self.source);
-        let file_content = source.as_ref().map(|s| s.content()).unwrap_or("");
-
-        if self.offset >= file_content.len() {
+        if self.offset >= self.content.len() {
             return None;
         }
 
-        let point = &file_content[self.offset..];
+        let point = &self.content[self.offset..];
 
         match find_next(point) {
             Some((kind, mat)) => {
@@ -250,8 +247,13 @@ impl Iterator for TokenStream {
                     .rfind('\n')
                     .map(|v| value.len() - v)
                     .unwrap_or(self.position.column() + value.len());
-                let position = Position::new(line, column);
-                let span = Span::new(self.position, position, Some(self.source));
+                let position = Position::new(self.offset + value.len(), line, column);
+                let content = if kind.has_value() {
+                    Some(self.source)
+                } else {
+                    None
+                };
+                let span = Span::new(self.position, position, content);
                 self.offset += value.len();
                 self.position = position;
                 let token = Token::new(kind, span, Some(value));
@@ -263,7 +265,7 @@ impl Iterator for TokenStream {
                 }
             }
             None => {
-                self.offset = file_content.len();
+                self.offset = self.content.len();
                 let c = point.chars().next().unwrap_or('\u{fffd}');
                 Some(Err(Error::UnexpectedSymbolError {
                     symbol: c,
@@ -291,7 +293,7 @@ fn find_next(source: &str) -> Option<(TokenKind, ::regex::Match)> {
 }
 
 fn error(
-    diag: &Diagnostics,
+    diag: &DiagnosticSync<'_>,
     current: TokenKind,
     expected: &[TokenKind],
     span: Span,

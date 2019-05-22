@@ -15,7 +15,7 @@ pub enum Item {
     Struct(Box<Struct>),
     Enum(Box<Enum>),
     Module(Box<Module>),
-    Use(Use),
+    Use(Box<Use>),
 }
 
 impl Node for Item {
@@ -25,7 +25,7 @@ impl Node for Item {
             Some(TokenKind::Struct) => Ok(Item::Struct(Box::new(Struct::parse(stream)?))),
             Some(TokenKind::Enum) => Ok(Item::Enum(Box::new(Enum::parse(stream)?))),
             Some(TokenKind::Module) => Ok(Item::Module(Box::new(Module::parse(stream)?))),
-            Some(TokenKind::Use) => Ok(Item::Use(Use::parse(stream)?)),
+            Some(TokenKind::Use) => Ok(Item::Use(Box::new(Use::parse(stream)?))),
             _ => stream
                 .error_from(&[
                     TokenKind::Fn,

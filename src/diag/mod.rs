@@ -14,8 +14,7 @@
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::{Arc, Mutex};
 
 mod emission;
 mod level;
@@ -36,56 +35,55 @@ use self::overrides::Overrides;
 /// The diagnostic information related to a compilation.  This includes
 /// information about file sources and errors.
 #[derive(Debug)]
-pub struct Diagnostics {
+pub struct Diagnostics<'c> {
     /// A mapping from file source ids to the actual sources themselves.
-    /// Note that this is wrapped in a rwlock - this allows us to mutate
-    /// the source list with only an immutable reference.  This is not really
-    /// great, but it allows us to pass out the contents of a file _and_
-    /// import a file at the same time.
-    sources: RwLock<HashMap<SourceId, Arc<Source>>>,
+    sources: HashMap<SourceId, Source<'c>>,
 
-    /// This contains the next source id.  Since we need to make sure that
-    /// this is unique across all files, we'll just use a counter.
-    next: Arc<AtomicUsize>,
+    /// This contains the next source id.  Since we need to make sure
+    /// that this is unique across all files, we'll just use a counter.
+    next: usize,
 
-    /// The currently active level.  Anything emitted at or above this level
-    /// will be reported.
-    active: RwLock<Level>,
+    /// The currently active level.  Anything emitted at or above this
+    /// level will be reported.
+    active: Level,
 
-    /// This allows us to keep track of overrides that are set by the language
-    /// while compiling.
-    overrides: RwLock<Overrides>,
+    /// This allows us to keep track of overrides that are set by the
+    /// language while compiling.
+    overrides: Overrides,
 
-    /// All of the emissions occurring over the lifetime of the diagnostics
-    /// information.  This can be compiled into a large list at the end and
-    /// emitted then, or serialized.
-    emissions: Mutex<Vec<Emission>>,
+    /// All of the emissions occurring over the lifetime of the
+    /// diagnostics information.  This can be compiled into a large
+    /// list at the end and emitted then, or serialized.
+    emissions: Vec<Emission>,
 }
 
-impl Diagnostics {
+impl<'c> Diagnostics<'c> {
     /// Creates a new diagnostics session.  This just returns the default
     /// value of it.
-    pub fn new() -> Diagnostics {
+    pub fn new() -> Diagnostics<'c> {
         Diagnostics::default()
     }
 
-    /// Add a source to the diagnostic session.  This returns a source id in
-    /// response, which can be used to retrieve the source itself, or its
-    /// contents.
-    pub fn add_source<N: Into<String>, C: Into<String>>(&self, name: N, content: C) -> SourceId {
-        let mut sources = self.sources.write().unwrap();
-        let id = SourceId(self.next.fetch_add(1, Ordering::Acquire));
-        let source = Source {
+    /// Creates a new source, and returns the proper reference to that
+    /// source.  This allows us to create information about the source
+    /// while using a copyable id to refer to it later.
+    pub fn push(
+        &mut self,
+        name: impl Into<Cow<'c, str>>,
+        content: Option<impl Into<Cow<'c, str>>>,
+    ) -> SourceId {
+        let id = self.next;
+        self.next += 1;
+        let id = SourceId(id);
+        self.sources.insert(
             id,
-            name: name.into(),
-            content: content.into(),
-        };
-        sources.insert(id, Arc::new(source));
+            Source {
+                id,
+                name: name.into(),
+                content: content.map(Into::into),
+            },
+        );
         id
-    }
-
-    pub fn source(&self, id: SourceId) -> Option<Arc<Source>> {
-        self.sources.read().unwrap().get(&id).cloned()
     }
 
     /// Emits the given emission if, and only if, the given check name
@@ -93,7 +91,7 @@ impl Diagnostics {
     /// a diagnostic with name `name`, at location `span`, with message
     /// `message`, as if [`emit()`] was called with those parameters.
     pub fn emit_if(
-        &self,
+        &mut self,
         check: Name,
         name: Name,
         span: Span,
@@ -109,19 +107,10 @@ impl Diagnostics {
     /// it is emitted with all of the information that can be gathered, and
     /// emitted with [`Emission::emit()`] - with terminal support by default,
     /// otherwise, just stderr.
-    pub fn emit(&self, name: Name, span: Span, message: impl Into<Cow<'static, str>>) {
-        let emission = Emission::new(
-            name,
-            self.overrides.read().unwrap().lookup(name),
-            span,
-            message,
-        );
+    pub fn emit(&mut self, name: Name, span: Span, message: impl Into<Cow<'static, str>>) {
+        let emission = Emission::new(name, self.overrides.lookup(name), span, message);
         if self.active(name) {
-            let sources = self.sources.read().unwrap();
-            let source = span
-                .source()
-                .and_then(|s| sources.get(&s))
-                .map(AsRef::as_ref);
+            let source = span.source().and_then(|s| self.sources.get(&s));
             if let Some(mut term) = ::term::stderr() {
                 emission.emit(source, &mut *term).unwrap();
             } else {
@@ -131,22 +120,71 @@ impl Diagnostics {
             }
         }
 
-        self.emissions.lock().unwrap().push(emission);
+        self.emissions.push(emission);
     }
 
     pub fn active(&self, name: Name) -> bool {
-        self.overrides.read().unwrap().lookup(name) >= *self.active.read().unwrap()
+        self.overrides.lookup(name) >= self.active
     }
 }
 
-impl Default for Diagnostics {
-    fn default() -> Diagnostics {
+impl<'c> Default for Diagnostics<'c> {
+    fn default() -> Diagnostics<'c> {
         Diagnostics {
-            sources: RwLock::new(HashMap::new()),
-            next: Arc::new(AtomicUsize::new(1)),
-            active: RwLock::new(Level::default()),
-            overrides: RwLock::new(Overrides::default()),
-            emissions: Mutex::new(vec![]),
+            sources: Default::default(),
+            next: 0,
+            active: Level::default(),
+            overrides: Overrides::new(),
+            emissions: vec![],
         }
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct DiagnosticSync<'c>(Arc<Mutex<Diagnostics<'c>>>);
+
+impl<'c> DiagnosticSync<'c> {
+    /// Creates a new source, and returns the proper reference to that
+    /// source.  This allows us to create information about the source
+    /// while using a copyable id to refer to it later.
+    pub fn push(
+        &self,
+        name: impl Into<Cow<'c, str>>,
+        content: Option<impl Into<Cow<'c, str>>>,
+    ) -> SourceId {
+        self.0.lock().unwrap().push(name, content)
+    }
+
+    /// Emits the given emission if, and only if, the given check name
+    /// diagnostic is active.  More concisely, if check is active, then emit
+    /// a diagnostic with name `name`, at location `span`, with message
+    /// `message`, as if [`emit()`] was called with those parameters.
+    pub fn emit_if(
+        &self,
+        check: Name,
+        name: Name,
+        span: Span,
+        message: impl Into<Cow<'static, str>>,
+    ) {
+        self.0.lock().unwrap().emit_if(check, name, span, message)
+    }
+
+    /// Emits a diagnostic.  Even if the given diagostic name would not be
+    /// emitted, it is still appended to the emissions list.  If it is emitted,
+    /// it is emitted with all of the information that can be gathered, and
+    /// emitted with [`Emission::emit()`] - with terminal support by default,
+    /// otherwise, just stderr.
+    pub fn emit(&self, name: Name, span: Span, message: impl Into<Cow<'static, str>>) {
+        self.0.lock().unwrap().emit(name, span, message)
+    }
+
+    pub fn active(&self, name: Name) -> bool {
+        self.0.lock().unwrap().active(name)
+    }
+}
+
+impl<'c> From<Diagnostics<'c>> for DiagnosticSync<'c> {
+    fn from(diag: Diagnostics<'c>) -> DiagnosticSync<'c> {
+        DiagnosticSync(Arc::new(Mutex::new(diag)))
     }
 }

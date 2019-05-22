@@ -9,37 +9,25 @@
 //! - `$slip::$arecot.ref(void*, void*)`
 //! - `$slip::$arecot.deref(void*, void*)`
 //!
-//! Each function takes a pointer to the block of data as the first argument,
-//! and a pointer to the arecot as the second.
+//! Each function takes a pointer to the arecot as the first argument,
+//! and a pointer to the block of data as the second.
 
+use crate::reduce::Path;
+use crate::reduce::Reduce;
+use crate::slip_path;
 use inkwell::module::Linkage;
-use inkwell::types::BasicType;
+use inkwell::types::{BasicType, BasicTypeEnum};
+use inkwell::values::FunctionValue;
 use inkwell::AddressSpace;
-use lazy_static::*;
-use std::sync::Arc;
 
-use super::AnnotationName;
-use super::Reduce;
-use crate::syn::function::FunctionName;
-use crate::syn::Type;
-
-lazy_static! {
-    static ref ARECOT_TYPE: Type = Type::from(["$slip", "$arecot"].iter().cloned());
-    static ref INIT_NAME: FunctionName = FunctionName::ident_of("init");
-    static ref REF_NAME: FunctionName = FunctionName::ident_of("ref");
-    static ref DEREF_NAME: FunctionName = FunctionName::ident_of("deref");
-    static ref TYPE_ANNOT: AnnotationName<'static> = AnnotationName::new(vec![&*ARECOT_TYPE], None);
-    static ref INIT_ANNOT: AnnotationName<'static> =
-        AnnotationName::new(vec![&*ARECOT_TYPE], Some(&*INIT_NAME));
-    static ref REF_ANNOT: AnnotationName<'static> =
-        AnnotationName::new(vec![&*ARECOT_TYPE], Some(&*REF_NAME));
-    static ref DEREF_ANNOT: AnnotationName<'static> =
-        AnnotationName::new(vec![&*ARECOT_TYPE], Some(&*DEREF_NAME));
-}
+static TYPE_ANNOT: Path<'static> = slip_path!(["$slip"]::["$arecot"]);
+static INIT_ANNOT: Path<'static> = slip_path!(["$slip"]::["$arecot"].["$init"]);
+static REF_ANNOT: Path<'static> = slip_path!(["$slip"]::["$arecot"].["$ref"]);
+static DEREF_ANNOT: Path<'static> = slip_path!(["$slip"]::["$arecot"].["$deref"]);
 
 pub(super) fn build(reduce: &mut Reduce<'_>) {
     reduce.types.insert(
-        Arc::new(AnnotationName::new(vec![&*ARECOT_TYPE], None)),
+        TYPE_ANNOT.clone(),
         reduce
             .context
             .void_type()
@@ -58,40 +46,40 @@ pub(super) fn build(reduce: &mut Reduce<'_>) {
     let init_fn =
         reduce
             .module
-            .add_function("$slip::$arecot.init", fn_type, Some(Linkage::External));
-    reduce.funcs.insert(
-        Arc::new(AnnotationName::new(vec![&*ARECOT_TYPE], Some(&*INIT_NAME))),
-        init_fn,
-    );
-    let ref_fn = reduce
-        .module
-        .add_function("$slip::$arecot.ref", fn_type, Some(Linkage::External));
-    reduce.funcs.insert(
-        Arc::new(AnnotationName::new(vec![&*ARECOT_TYPE], Some(&*REF_NAME))),
-        ref_fn,
-    );
+            .add_function(&INIT_ANNOT.to_string(), fn_type, Some(Linkage::External));
+    reduce.funcs.insert(INIT_ANNOT.clone(), init_fn);
+    let ref_fn =
+        reduce
+            .module
+            .add_function(&REF_ANNOT.to_string(), fn_type, Some(Linkage::External));
+    reduce.funcs.insert(REF_ANNOT.clone(), ref_fn);
     let deref_fn =
         reduce
             .module
-            .add_function("$slip::$arecot.deref", fn_type, Some(Linkage::External));
-    reduce.funcs.insert(
-        Arc::new(AnnotationName::new(vec![&*ARECOT_TYPE], Some(&*DEREF_NAME))),
-        deref_fn,
-    );
+            .add_function(&DEREF_ANNOT.to_string(), fn_type, Some(Linkage::External));
+    reduce.funcs.insert(DEREF_ANNOT.clone(), deref_fn);
 }
 
-pub(super) fn type_annot() -> &'static AnnotationName<'static> {
-    &*TYPE_ANNOT
+pub(super) fn type_from<'s>(reduce: &mut Reduce<'s>) -> BasicTypeEnum {
+    *reduce.types.get(type_annot()).unwrap()
 }
 
-pub(super) fn init_annot() -> &'static AnnotationName<'static> {
-    &*INIT_ANNOT
+pub(super) fn type_annot() -> &'static Path<'static> {
+    &TYPE_ANNOT
 }
 
-pub(super) fn ref_annot() -> &'static AnnotationName<'static> {
-    &*REF_ANNOT
+pub(super) fn init_from<'s>(reduce: &mut Reduce<'s>) -> FunctionValue {
+    *reduce.funcs.get(init_annot()).unwrap()
 }
 
-pub(super) fn deref_annot() -> &'static AnnotationName<'static> {
-    &*DEREF_ANNOT
+pub(super) fn init_annot() -> &'static Path<'static> {
+    &INIT_ANNOT
+}
+
+pub(super) fn ref_annot() -> &'static Path<'static> {
+    &REF_ANNOT
+}
+
+pub(super) fn deref_annot() -> &'static Path<'static> {
+    &DEREF_ANNOT
 }

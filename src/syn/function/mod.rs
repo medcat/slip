@@ -173,7 +173,7 @@ impl FunctionName {
         FunctionName::Identifier(Token::new(
             TokenKind::Identifier,
             Span::default(),
-            Some(cow),
+            Some(cow.into()),
         ))
     }
 

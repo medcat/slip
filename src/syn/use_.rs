@@ -85,6 +85,7 @@ impl BasicNode for Use {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[allow(clippy::large_enum_variant)]
 pub enum UseTrail {
     Static(Type, Span),
     Rename(Type, Type, Span),

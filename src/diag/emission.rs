@@ -58,7 +58,7 @@ impl Emission {
         let lines = source
             .as_ref()
             // We'll try to get the content of the file, if it exists.
-            .map(|f| f.content.as_ref())
+            .and_then(|f| f.content())
             // If it doesn't, just use an empty string.
             .unwrap_or("")
             // Enumerate the lines,

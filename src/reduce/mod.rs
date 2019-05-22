@@ -31,25 +31,28 @@ mod arecot;
 mod process;
 mod resolve;
 mod type_;
+#[macro_use]
+mod path;
 
-use self::annotation::{Annotation, AnnotationName};
+pub use self::annotation::{Annotation};
+pub use self::path::Path;
 pub use self::type_::TypeState;
-use crate::diag::Diagnostics;
+use crate::diag::DiagnosticSync;
 
 use crate::error::Error;
-use crate::syn::{Root, Type};
+use crate::syn::Root;
 
 pub struct Reduce<'s> {
-    set: Arc<Diagnostics>,
+    set: DiagnosticSync<'s>,
     context: Context,
     module: Module,
-    annotated: HashMap<Arc<AnnotationName<'s>>, Vec<Arc<Annotation<'s>>>>,
-    types: HashMap<Arc<AnnotationName<'s>>, BasicTypeEnum>,
-    funcs: HashMap<Arc<AnnotationName<'s>>, FunctionValue>,
+    annotated: HashMap<Path<'s>, Vec<Arc<Annotation<'s>>>>,
+    types: HashMap<Path<'s>, BasicTypeEnum>,
+    funcs: HashMap<Path<'s>, FunctionValue>,
 }
 
 impl<'s> Reduce<'s> {
-    pub fn new(set: Arc<Diagnostics>) -> Reduce<'s> {
+    pub fn new(set: DiagnosticSync<'s>) -> Reduce<'s> {
         let context = Context::create();
         let module = context.create_module("mod");
         Reduce {
@@ -65,9 +68,9 @@ impl<'s> Reduce<'s> {
     pub fn push(&mut self, root: &'s Root) {
         for item in TypeState::build(root) {
             let annotation = Annotation::from(item);
-            let name = annotation.to_name();
+            let name = annotation.to_path();
             self.annotated
-                .entry(Arc::new(name))
+                .entry(name)
                 .or_insert_with(|| vec![])
                 .push(Arc::new(annotation));
         }
@@ -81,10 +84,10 @@ impl<'s> Reduce<'s> {
         unimplemented!()
     }
 
-    fn process(&mut self, name: Arc<AnnotationName<'s>>) -> Result<(), Error> {
+    fn process(&mut self, name: Path<'s>) -> Result<(), Error> {
         let annotation = self
             .annotated
-            .get(name.as_ref())
+            .get(&name)
             .and_then(|t| t.first())
             .unwrap()
             .clone();
@@ -97,12 +100,12 @@ impl<'s> Reduce<'s> {
         Ok(())
     }
 
-    fn pluck(&self) -> Option<Arc<AnnotationName<'s>>> {
+    fn pluck(&self) -> Option<Path<'s>> {
         self.annotated
             .iter()
             .find(|(key, value)| {
-                let func_defined = self.funcs.contains_key(key.as_ref());
-                let type_defined = self.types.contains_key(key.as_ref());
+                let func_defined = self.funcs.contains_key(key);
+                let type_defined = self.types.contains_key(key);
                 let is_func = value
                     .first()
                     .map(AsRef::as_ref)

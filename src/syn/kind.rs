@@ -146,11 +146,11 @@ impl PartialEq for Type {
     }
 }
 
-impl<'s, T: Into<Cow<'s, str>>, I: IntoIterator<Item = T>> From<I> for Type {
+impl<'c, T: Into<Cow<'c, str>>, I: IntoIterator<Item = T>> From<I> for Type {
     fn from(array: I) -> Type {
         let new = array
             .into_iter()
-            .map(|t| Token::new(TokenKind::ModuleName, Span::default(), Some(t)))
+            .map(|t| Token::new(TokenKind::ModuleName, Span::default(), Some(t.into())))
             .collect();
         Type::new(new, None, Span::default())
     }
@@ -159,7 +159,7 @@ impl<'s, T: Into<Cow<'s, str>>, I: IntoIterator<Item = T>> From<I> for Type {
 impl Eq for Type {}
 
 impl Display for Type {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> FmtResult {
+    fn fmt(&self, fmt: &mut Formatter) -> FmtResult {
         let mut p = self.parts().iter().peekable();
         while let Some(n) = p.next() {
             write!(fmt, "{}", n.value().unwrap())?;
